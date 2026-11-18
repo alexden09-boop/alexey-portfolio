@@ -39,9 +39,13 @@ try {
   const addresses = await works.locator('a').evaluateAll(links => links.map(a => a.href));
   const expected = ['homesart','duckcomics','meganrg','meta-lingva','capsule','soyuz','atelier','hikikomori','energy','beta-trading','author','aero','roman'];
   assert.deepEqual(addresses.map(address => new URL(address).pathname.split('/').at(-2)), expected);
-  await page.locator('#work-duckcomics a').focus();
-  await page.waitForFunction(() => document.querySelector('.stage-image:last-child').getAttribute('src')?.endsWith('duckcomics.webp'));
-  assert.equal(await page.locator('.stage-name').textContent(), 'DuckComics');
+  const cover = page.locator('#work-duckcomics picture img');
+  await cover.evaluate(img => img.decode());
+  const edgeToEdge = await cover.evaluate(img =>
+    img.currentSrc.endsWith('/media/duckcomics.webp') && Math.abs(img.clientWidth * 9 / 16 - img.clientHeight) < 1 &&
+    Math.abs(img.getBoundingClientRect().width - img.closest('a').getBoundingClientRect().width) < 1);
+  assert.ok(edgeToEdge, 'The desktop site preview should fill the project link');
+
   await page.getByRole('button', { name: 'Веб-сервисы' }).click();
   assert.equal(await page.locator('.work:visible').count(), 1);
   await page.locator('.work:visible a').first().click();

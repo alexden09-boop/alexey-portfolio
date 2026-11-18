@@ -1,74 +1,13 @@
-const works = [...document.querySelectorAll('.work')];
 const filters = document.querySelector('.filters');
 const buttons = [...filters.querySelectorAll('button')];
-const stage = document.querySelector('.stage');
-const art = stage.querySelector('.stage-art');
-const stageName = stage.querySelector('.stage-name');
-const stageKind = stage.querySelector('.stage-kind');
-const wide = matchMedia('(min-width: 831px) and (any-hover: hover)');
-const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const works = [...document.querySelectorAll('.work')];
 
-let selected;
-let revision = 0;
-let displayed = works[0];
-let transition;
-function selectWork(work) {
-  if (!work || work.hidden) return;
-  if (selected !== work) {
-    selected?.classList.remove('selected');
-    selected = work;
-    work.classList.add('selected');
-  }
-  const request = ++revision;
-  if (!wide.matches) return;
-  const name = work.querySelector('.work-name').textContent;
-  const kind = work.querySelector('.work-kind').textContent;
-  stage.href = work.querySelector('a').href;
-  stage.setAttribute('aria-label', 'Открыть демо — ' + name);
-  stageName.textContent = name;
-  stageKind.textContent = kind;
-  if (displayed === work) return;
-  const image = new Image();
-  image.className = 'stage-image';
-  image.alt = '';
-  image.style.objectPosition = work.dataset.position;
-  image.src = work.dataset.image;
-  image.decode().then(() => {
-    if (request !== revision || !wide.matches) return;
-    transition?.finish();
-    const outgoing = art.lastElementChild;
-    art.append(image);
-    displayed = work;
-    if (reduced.matches || !image.animate) { outgoing?.remove(); return; }
-    transition = image.animate([
-      { opacity: 0, transform: 'scale(1.028)' },
-      { opacity: 1, transform: 'scale(1)' }
-    ], { duration: 440, easing: 'cubic-bezier(.22,.7,.21,1)' });
-    transition.onfinish = () => outgoing?.remove();
-  }).catch(() => {
-    if (request !== revision) return;
-    transition?.finish();
-    art.replaceChildren();
-    displayed = null;
-  });
-}
-
-function updateList() {
+function sync() {
   const requested = new URL(location.href).searchParams.get('type');
-  const group = buttons.some(b => b.dataset.filter === requested) ? requested : 'all';
-  buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.filter === group)));
+  const group = buttons.some(button => button.dataset.filter === requested) ? requested : 'all';
+  for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.filter === group));
   for (const work of works) work.hidden = group !== 'all' && work.dataset.group !== group;
-  const visible = works.filter(work => !work.hidden);
-  document.querySelector('#results').textContent = 'Работ в подборке — ' + visible.length;
-  const anchor = visible.find(work => '#' + work.id === location.hash);
-  selectWork(anchor || (visible.includes(selected) ? selected : visible[0]));
-}
-
-for (const work of works) {
-  work.addEventListener('pointerenter', event => {
-    if (wide.matches && event.pointerType !== 'touch') selectWork(work);
-  });
-  work.addEventListener('focusin', () => selectWork(work));
+  document.querySelector('#results').textContent = 'Работ в подборке — ' + works.filter(work => !work.hidden).length;
 }
 filters.addEventListener('click', event => {
   const button = event.target.closest('button');
@@ -78,12 +17,12 @@ filters.addEventListener('click', event => {
   else url.searchParams.set('type', button.dataset.filter);
   url.hash = '';
   history.replaceState(null, '', url);
-  updateList();
+  sync();
 });
-wide.addEventListener('change', () => selectWork(selected));
-reduced.addEventListener('change', () => { if (reduced.matches) transition?.finish(); });
-window.addEventListener('popstate', updateList);
-window.addEventListener('pageshow', updateList);
+window.addEventListener('pageshow', sync);
+window.addEventListener('popstate', sync);
+sync();
+filters.hidden = false;
 
 let fromBook = window.self !== window.top;
 if (!fromBook) {
@@ -94,5 +33,29 @@ if (!fromBook) {
   } catch {}
 }
 document.documentElement.classList.toggle('from-book', fromBook);
-updateList();
-filters.hidden = false;
+if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion:reduce)').matches) {
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add('in-view');
+      observer.unobserve(entry.target);
+    }
+  });
+  for (const work of works) observer.observe(work);
+}
+
+const canPreview = matchMedia('(hover:hover) and (pointer:fine) and (min-width:701px) and (prefers-reduced-motion:no-preference)');
+for (const work of works) {
+  const preview = work.querySelector('.preview');
+  function loadSecond() {
+    if (!canPreview.matches || preview.querySelector('.secondary')) return;
+    const image = new Image();
+    image.alt = '';
+    image.className = 'secondary';
+    image.src = preview.dataset.second;
+    preview.append(image);
+    image.decode().then(() => image.classList.add('ready')).catch(() => image.remove());
+  }
+  work.addEventListener('pointerenter', loadSecond);
+  work.addEventListener('focusin', loadSecond);
+}
