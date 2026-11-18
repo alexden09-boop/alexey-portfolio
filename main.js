@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { createSculpture } from './scene.js';
 import { createProduct } from './product.js';
+import { connectFolios } from './folio-navigation.js';
 
 gsap.registerPlugin(ScrollTrigger);
 const $ = (s, root = document) => root.querySelector(s);
@@ -104,8 +105,7 @@ function setupMotion(entrance = false, restart = false) {
     if (state.paused) return;
     if (entrance) {
       intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
-      intro.from('.hybrid-line', { y: 45, opacity: 0, stagger: .14, duration: 1.2 }, .1)
-        .from('.scene', { opacity: .45, duration: .55 }, .05)
+      intro.from('.scene', { opacity: .45, duration: .55 }, .05)
         .from(choreography, { arrival: 0, duration: 2.8, ease: 'sine.out' }, .15)
         .from('.hybrid-intro', { y: 24, opacity: 0, duration: 1 }, .7)
         .from('.hybrid-actions', { y: 18, opacity: 0, duration: .9 }, .85);
@@ -147,11 +147,8 @@ for (const link of $$('[data-document]')) {
   link.addEventListener('pointerleave', () => { if (document.activeElement !== link) blur(); });
   link.addEventListener('focus', focus);
   link.addEventListener('blur', blur);
-  link.addEventListener('click', () => {
-    blur();
-    if (link.hash) $(link.hash)?.focus({ preventScroll: true });
-  });
 }
+connectFolios($$('[data-document]'), (key, host) => sculpture?.openFolio(key, host), reduced);
 function updateStory() {
   const time = storyTimeline?.time() || 0;
   const active = chapters.findLastIndex(chapter => time >= chapter.at);

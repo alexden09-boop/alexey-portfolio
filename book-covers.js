@@ -235,26 +235,36 @@ function foilMask(title, key) {
   return map;
 }
 
-export function stampVolume(mesh, bounds, spec, bindingGrain) {
+export function stampVolume(mesh, bounds, spec, bindingGrain, hinge, gleam) {
   const map = foilMask(spec.title, spec.key);
   const material = mesh.material.clone();
   const size = bounds.getSize(new THREE.Vector3());
   material.onBeforeCompile = (shader) => {
+    shader.uniforms.boardAngle = hinge;
+    shader.uniforms.foilGleam = gleam;
+    shader.uniforms.boardJoint = { value: new THREE.Vector3(bounds.max.x - .002, bounds.max.z - .004, size.x) };
     shader.uniforms.foilMask = { value: map };
     shader.uniforms.bindingGrain = { value: bindingGrain };
     shader.uniforms.coverExtent = { value: new THREE.Vector4(bounds.max.z, bounds.min.y, size.z, size.y) };
     shader.uniforms.coverDye = { value: new THREE.Vector3(...spec.dye) };
     shader.uniforms.foilColor = { value: new THREE.Color(foils[spec.key]) };
     shader.vertexShader =
-      'varying vec2 foilUV; varying float coverFace; uniform vec4 coverExtent;\n' + shader.vertexShader;
+      `varying vec2 foilUV; varying float coverFace; uniform vec4 coverExtent;
+       uniform vec3 boardJoint; uniform float boardAngle;
+       vec2 bendJoint(vec2 v,float a){ return vec2(cos(a)*v.x+sin(a)*v.y,-sin(a)*v.x+cos(a)*v.y); }
+       ` + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+      float hingeTurn=-boardAngle*smoothstep(boardJoint.x-boardJoint.z*.72,boardJoint.x-boardJoint.z*.15,position.x);
+      objectNormal.xz=bendJoint(objectNormal.xz,hingeTurn);`);
     shader.vertexShader = shader.vertexShader.replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
       foilUV=vec2((coverExtent.x-position.z)/coverExtent.z,(position.y-coverExtent.y)/coverExtent.w);
-      coverFace=normal.x;`
+      coverFace=normal.x;
+      transformed.xz=boardJoint.xy+bendJoint(transformed.xz-boardJoint.xy,hingeTurn);`
     );
     shader.fragmentShader =
-      'varying vec2 foilUV; varying float coverFace; uniform sampler2D foilMask,bindingGrain; uniform vec3 coverDye,foilColor;\n' +
+      'varying vec2 foilUV; varying float coverFace; uniform sampler2D foilMask,bindingGrain; uniform vec3 coverDye,foilColor; uniform float foilGleam;\n' +
       shader.fragmentShader;
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <color_fragment>',
@@ -264,7 +274,7 @@ export function stampVolume(mesh, bounds, spec, bindingGrain) {
       vec3 leather=texture2D(bindingGrain,foilUV*vec2(1.02,1.36)).rgb;
       float board=smoothstep(.35,.9,abs(coverFace));
       diffuseColor.rgb=mix(diffuseColor.rgb,grain*coverDye*(.74+.56*leather.r),board*.97);
-      diffuseColor.rgb=mix(diffuseColor.rgb,foilColor*(.91+min(.09,grain)),foil);`
+      diffuseColor.rgb=mix(diffuseColor.rgb,foilColor*(.91+min(.09,grain)+.17*foilGleam),foil);`
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',

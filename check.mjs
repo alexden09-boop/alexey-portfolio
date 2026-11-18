@@ -54,5 +54,42 @@ try {
   await page.waitForURL(new URL('#contact', base).href);
   assert.equal(await page.locator('.contact-telegram').getAttribute('href'), 'https://t.me/Alex_codlay');
   assert.deepEqual(errors, []);
+  await page.close();
+
+  const motion = await browser.newPage({ viewport: { width: 1050, height: 760 }, reducedMotion: 'no-preference' });
+  motion.on('pageerror', error => errors.push(error.message));
+  motion.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  // Confirm the transition really submits the particle geometry for each edition.
+  await motion.addInitScript(() => {
+    const draw = WebGL2RenderingContext.prototype.drawArrays;
+    WebGL2RenderingContext.prototype.drawArrays = function (mode, ...args) {
+      const edition = this.canvas.closest('.folio-transition')?.dataset.book;
+      if (edition && mode === this.POINTS && !sessionStorage.getItem('qa-film-' + edition)) {
+        sessionStorage.setItem('qa-film-' + edition, 'drawn');
+      }
+      return draw.call(this, mode, ...args);
+    };
+  });
+  await motion.goto(base.href);
+  await motion.waitForFunction(() => window.portfolioStatus?.().documents.filter(b => b.progress === 1).length === 4);
+  for (const edition of ['sites', 'ads', 'apps', '3d']) {
+    const link = motion.locator('[data-document="' + edition + '"]');
+    await link.focus();
+    await motion.keyboard.press('Enter');
+    if (edition === '3d') {
+      await motion.waitForURL(sceneURL.href);
+      await motion.waitForFunction(() => !document.documentElement.classList.contains('from-folio'));
+    } else {
+      await motion.waitForURL(new URL('#service-' + edition, base).href);
+      await motion.locator('.folio-transition').waitFor({ state: 'detached' });
+      assert.equal(await motion.evaluate(() => document.activeElement.id), 'service-' + edition);
+      assert.ok(await motion.locator('#scene > canvas:not(.folio-snapshot)').isVisible());
+      await motion.goBack();
+      await motion.waitForURL(base.href);
+    }
+    assert.equal(await motion.evaluate(key => sessionStorage.getItem('qa-film-' + key), edition), 'drawn');
+  }
+  assert.deepEqual(errors, []);
+  console.log('Checked four animated folios, particle draws, keyboard navigation and browser history.');
   console.log('Checked portfolio, navigation, presentation, Telegram links, live 3D rendering and return at ' + base.href);
 } finally { await browser.close(); }

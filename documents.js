@@ -69,7 +69,8 @@ export function createBooks(group, camera, state, container, stock, bindingGrain
     model.scale.set(scale * 1.1, scale, scale * 1.22);
     model.position.copy(center).multiply(model.scale).negate();
     const cover = model.getObjectByProperty('isMesh', true);
-    const releaseStamp = stampVolume(cover, bounds, spec, bindingGrain);
+    const hinge = { value: 0 }, gleam = { value: 0 };
+    const releaseStamp = stampVolume(cover, bounds, spec, bindingGrain, hinge, gleam);
     const mount = new THREE.Group();
     mount.rotation.y = -Math.PI / 2;
     mount.add(model);
@@ -80,6 +81,7 @@ export function createBooks(group, camera, state, container, stock, bindingGrain
       index,
       body,
       releaseStamp,
+      hinge, gleam,
       width: size.z * model.scale.z,
       depth: size.x * model.scale.x,
       link: container.querySelector('[data-document="' + spec.key + '"]'),
@@ -107,6 +109,7 @@ export function createBooks(group, camera, state, container, stock, bindingGrain
       const sign = Math.sign(b.slot);
       const hover = state.heroFocus === b.key ? 1 : 0;
       b.hover = lerp(b.hover, hover, state.paused ? 1 : 1 - Math.exp(-dt * 9));
+      b.gleam.value = b.hover;
       const storedY = b.floor * 1.54 - 1.78 + b.height / 2 + 0.009;
       // The spine moves along the shelf until the trailing fore edge clears the open doors.
       const storedZ = 0.58 - b.width / 2;
@@ -196,6 +199,7 @@ export function createBooks(group, camera, state, container, stock, bindingGrain
     }
   }
   return {
+    find: (key) => books.find((book) => book.key === key),
     update,
     project,
     status: () =>

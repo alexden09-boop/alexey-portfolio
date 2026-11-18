@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { createCabinet } from './cabinet.js';
 import { createBooks } from './documents.js';
+import { makeFolioFilm } from './folio-film.js';
 
 export async function createSculpture(state, choreography) {
   const container = document.querySelector('#scene');
@@ -98,6 +99,9 @@ export async function createSculpture(state, choreography) {
   }
   const cabinet = createCabinet(furniture.scene, stock);
   group.add(cabinet.object);
+  const shelfLight = new THREE.PointLight(0xffca8c, .42, 2.9, 2);
+  shelfLight.position.set(0, .24, .94);
+  group.add(shelfLight);
   const books = createBooks(group, camera, state, container, stock, bindingGrain);
   group.traverse((m) => {
     if (m.isMesh) {
@@ -127,6 +131,7 @@ export async function createSculpture(state, choreography) {
   shadow.rotation.x = -Math.PI / 2;
   scene.add(shadow);
 
+  let filming = false;
   let lost = false,
     drag = 0;
   const entranceStart = state.time;
@@ -138,13 +143,13 @@ export async function createSculpture(state, choreography) {
     oldDrag = 0,
     oldFocus = null;
   function render() {
-    if (lost) return;
+    if (lost || filming) return;
     renderer.render(scene, camera);
     books.project();
     state.frames++;
   }
   function frame(dt) {
-    if (lost) return;
+    if (lost || filming) return;
     if (
       state.tx !== oldX ||
       state.ty !== oldY ||
@@ -177,6 +182,7 @@ export async function createSculpture(state, choreography) {
     render();
   }
   function resize() {
+    if (filming) return;
     const width = container.clientWidth,
       height = container.clientHeight;
     if (!width || !height) return;
@@ -249,6 +255,31 @@ export async function createSculpture(state, choreography) {
     frame,
     bounds,
     documentStatus: books.status,
+    openFolio(key, host) {
+      const book = books.find(key);
+      if (filming || lost || !book || book.progress < .5) return null;
+      filming = true;
+      try {
+        const film = makeFolioFilm({ renderer, scene, camera, container, book, host });
+        return {
+          frame: film.frame,
+          dispose() {
+            film.dispose();
+            filming = false;
+            resize();
+          },
+        };
+      } catch (error) {
+        book.body.visible = true;
+        book.hinge.value = 0;
+        renderer.shadowMap.enabled = true;
+        container.append(canvas);
+        container.querySelector('.folio-snapshot')?.remove();
+        filming = false;
+        resize();
+        throw error;
+      }
+    },
     dispose() {
       observer.disconnect();
       books.dispose();

@@ -15,12 +15,39 @@
   <meta name="twitter:description" content="Интерактивная 3D-сцена с управлением прокруткой.">
   <meta name="twitter:image" content="https://alexden09-boop.github.io/alexey-portfolio/3d/assets/images/social.jpg">
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-  <link rel="stylesheet" href="./scene.css">
+  <script>
+    try {
+      const stamp = Number(sessionStorage.getItem('folio-ice-at'));
+      sessionStorage.removeItem('folio-ice-at');
+      if (Date.now() - stamp < 15000) document.documentElement.classList.add('from-folio');
+    } catch {}
+  </script>
+  <link rel="stylesheet" href="./scene.css?v=folio-1">
   <script type="module" src="./assets/index-2e130bc1.js"></script>
 </head>
 <body>
   <a class="scene-back" href="../#hybrid" aria-label="Назад на визитку"><span aria-hidden="true">←</span> Назад</a>
   <p class="scene-description">Прокрутите вниз, чтобы пройти по сцене. Камера движется сквозь туман и лёд к объектам.</p>
   <noscript>Для просмотра сцены включите JavaScript.</noscript>
+  <script>
+    if (document.documentElement.classList.contains('from-folio')) {
+      const root = document.documentElement;
+      const observer = new MutationObserver(checkScene);
+      const timeout = setTimeout(reveal, 9000);
+      function reveal() {
+        observer.disconnect();
+        clearTimeout(timeout);
+        root.classList.add('ice-is-live');
+        setTimeout(() => root.classList.remove('from-folio', 'ice-is-live'), 420);
+      }
+      function checkScene() {
+        if (!document.querySelector('#webgl > div') || document.getElementById('loader')) return;
+        observer.disconnect();
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(reveal, 150)));
+      }
+      observer.observe(document.body, { childList: true, subtree: true });
+      checkScene();
+    }
+  </script>
 </body>
 </html>
