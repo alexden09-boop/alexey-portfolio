@@ -198,6 +198,16 @@
 }
 @media(prefers-reduced-motion:reduce) { .service-item.in-view .service-art > div { animation:none; } }
 
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-arrival {
+    animation: scroll-arrival 420ms cubic-bezier(.22, .68, .28, 1);
+  }
+  @keyframes scroll-arrival {
+    from { opacity: .78; translate: 0 clamp(5px, .6vw, 8px); }
+    to   { opacity: 1; translate: 0 0; }
+  }
+}
+
 .contact-invitation { min-width:0; }
 .contact-invitation p { max-width:45ch; }
 .contact-telegram {

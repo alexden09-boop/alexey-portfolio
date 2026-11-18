@@ -120,7 +120,6 @@ function setupMotion(entrance = false, restart = false) {
     for (const item of $$('.service-item')) {
       const motion = gsap.timeline({ scrollTrigger: { trigger: item, start: 'top 98%', end: 'center 65%', scrub: .65 } });
       motion.from(item, { '--rule-progress': .08, ease: 'sine.out', duration: 1 }, 0)
-        .from($('h3', item), { x: -16, duration: 1 }, 0)
         .from($('.service-art', item), { '--turn': '-46deg', '--spread': '12px', y: 10, duration: 1 }, 0);
     }
     for (const step of $$('.process-list li')) {
@@ -129,15 +128,13 @@ function setupMotion(entrance = false, restart = false) {
         .from($('.step-number', step), { y: 16, duration: 1 }, 0)
         .from($('h4', step), { x: 11, duration: 1 }, 0);
     }
-    for (const [index, line] of $$('.contact-line').entries()) {
-      gsap.from(line, { xPercent: index ? 3 : -2, ease: 'none', scrollTrigger: { trigger: line, start: 'top 95%', end: 'top 55%', scrub: 1 } });
-    }
   });
   syncMotion();
 }
 
 function setPaused(paused) {
   state.paused = paused;
+  if (paused) for (const block of $$('.scroll-arrival')) block.classList.remove('scroll-arrival');
   document.body.classList.toggle('motion-paused', paused);
   setupMotion(false, !paused);
   ScrollTrigger.refresh();
@@ -479,6 +476,24 @@ if (projects.length) {
   for (const category of categories) { const button = document.createElement('button'); button.textContent = category; button.setAttribute('aria-pressed', String(category === 'Все')); button.addEventListener('click', () => renderProjects(category)); $('.project-filters').append(button); }
   for (const nav of $$('.desktop-nav,#mobile-menu')) { const a = document.createElement('a'); a.href = '#projects'; a.textContent = 'Работы'; a.addEventListener('click', () => closeMenu()); nav.prepend(a); }
   renderProjects('Все');
+}
+
+// Play the entrance at the bottom edge. Jumps directly to a section stay immediate.
+const arrivalObserver = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    const { target, rootBounds, boundingClientRect } = entry;
+    arrivalObserver.unobserve(target);
+    if (!rootBounds || state.paused || target.matches(':target, :focus-within')) continue;
+    const entryBand = Math.min(140, rootBounds.height * .2);
+    if (boundingClientRect.top >= rootBounds.bottom - entryBand) {
+      target.classList.add('scroll-arrival');
+    }
+  }
+});
+const viewportHeight = document.documentElement.clientHeight;
+for (const block of $$('.expertise-intro, .service-item, .collaboration-intro, .questions-list article, #contact-title')) {
+  if (block.getBoundingClientRect().top >= viewportHeight) arrivalObserver.observe(block);
 }
 
 const serviceObserver = new IntersectionObserver(entries => {
