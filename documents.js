@@ -9,7 +9,7 @@ const editions = [
     height: 1.24,
     slot: -0.32,
     floor: 1.32,
-    x: -1.31,
+    x: -1.89,
     y: 1.04,
     yaw: -0.27,
     roll: 0.085,
@@ -22,7 +22,7 @@ const editions = [
     height: 1.2,
     slot: 0.32,
     floor: 1.32,
-    x: 1.55,
+    x: 1.9,
     y: 0.89,
     yaw: 0.42,
     roll: -0.105,
@@ -35,7 +35,7 @@ const editions = [
     height: 1.22,
     slot: -0.34,
     floor: 0.32,
-    x: -1.32,
+    x: -1.92,
     y: -0.66,
     yaw: -0.15,
     roll: -0.064,
@@ -48,7 +48,7 @@ const editions = [
     height: 1.17,
     slot: 0.32,
     floor: 0.32,
-    x: 1.42,
+    x: 1.85,
     y: -0.82,
     yaw: 0.52,
     roll: 0.069,
@@ -57,7 +57,7 @@ const editions = [
 ];
 const { smootherstep, lerp, clamp } = THREE.MathUtils;
 
-export function createBooks(group, camera, state, container, stock) {
+export function createBooks(group, camera, state, container, stock, bindingGrain) {
   const books = editions.map((spec, index) => {
     const body = new THREE.Group();
     const model = stock[index].clone(true);
@@ -69,7 +69,7 @@ export function createBooks(group, camera, state, container, stock) {
     model.scale.set(scale * 1.1, scale, scale * 1.22);
     model.position.copy(center).multiply(model.scale).negate();
     const cover = model.getObjectByProperty('isMesh', true);
-    const releaseStamp = stampVolume(cover, bounds, spec);
+    const releaseStamp = stampVolume(cover, bounds, spec, bindingGrain);
     const mount = new THREE.Group();
     mount.rotation.y = -Math.PI / 2;
     mount.add(model);
@@ -91,7 +91,10 @@ export function createBooks(group, camera, state, container, stock) {
     };
   });
 
+  const restingPoint = new THREE.Vector3();
+  const inverseTurn = new THREE.Quaternion();
   function update(t, dt) {
+    inverseTurn.copy(group.quaternion).invert();
     for (const b of books) {
       const p = Math.max(b.progress, state.paused ? 1 : clamp((t - b.delay) / 1.94, 0, 1));
       b.progress = p;
@@ -107,15 +110,24 @@ export function createBooks(group, camera, state, container, stock) {
       const storedY = b.floor * 1.54 - 1.78 + b.height / 2 + 0.009;
       // The spine moves along the shelf until the trailing fore edge clears the open doors.
       const storedZ = 0.58 - b.width / 2;
+      // Anchor the airborne composition in front of the cabinet, even while it is dragged.
+      const air = state.paused ? 0 : smootherstep(p, 0.8, 1);
+      const phase = t * (0.83 + 0.055 * b.index) + b.index * 1.79;
+      restingPoint.set(
+        b.x + air * 0.009 * Math.sin(phase * 0.72),
+        b.y + air * 0.026 * Math.sin(phase),
+        2.04 + air * 0.013 * Math.cos(phase * 0.87)
+      );
+      restingPoint.applyQuaternion(inverseTurn);
       b.body.position.set(
-        lerp(b.slot, b.x, travel) + sign * 0.055 * arc,
-        lerp(storedY, b.y, travel) + 0.031 * pull + 0.112 * arc,
-        lerp(storedZ, 1.62, pull) + 0.21 * arc + 0.032 * settle
+        lerp(b.slot, restingPoint.x, travel) + sign * 0.055 * arc,
+        lerp(storedY, restingPoint.y, travel) + 0.031 * pull + 0.112 * arc,
+        lerp(lerp(storedZ, 1.92, pull), restingPoint.z, travel) + 0.21 * arc + 0.032 * settle
       );
       b.body.rotation.set(
         -0.085 * turn - 0.105 * arc,
-        lerp(Math.PI / 2, b.yaw, turn),
-        b.roll * turn + sign * (0.069 * arc - 0.018 * settle)
+        lerp(Math.PI / 2, b.yaw, turn) + air * 0.011 * Math.sin(phase * 0.75),
+        b.roll * turn + sign * (0.069 * arc - 0.018 * settle) + air * 0.009 * Math.cos(phase)
       );
       b.rest.position.copy(b.body.position);
       b.rest.quaternion.copy(b.body.quaternion);
@@ -126,6 +138,7 @@ export function createBooks(group, camera, state, container, stock) {
       b.body.rotation.y -= sign * 0.08 * lift;
       b.body.rotation.z -= sign * 0.025 * lift;
     }
+    container.classList.toggle('books-presented', books[books.length - 1].progress >= 0.9);
   }
 
   const corner = new THREE.Vector3();

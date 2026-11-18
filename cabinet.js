@@ -16,7 +16,7 @@ export function createCabinet(furniture, stock) {
       for (let i = 0; i < 4; i++) {
         const volume = stock[(i + row + (side + 1)) % stock.length].clone(true);
         const size = new THREE.Box3().setFromObject(volume).getSize(new THREE.Vector3());
-        const scale = (0.81 + 0.12 * Math.sin(i * 1.8 + side + row)) / size.y;
+        const scale = (0.99 + 0.12 * Math.sin(i * 1.8 + side + row)) / size.y;
         const thickness = size.x * scale;
         volume.scale.setScalar(scale);
         volume.position.set(
@@ -30,14 +30,14 @@ export function createCabinet(furniture, stock) {
       }
     }
     // A second row remains visible through the partly open doors.
-    let x = -0.25;
-    for (let i = 0; i < 5; i++) {
+    let x = -0.21;
+    for (let i = 0; i < 3; i++) {
       const volume = stock[(row + i + 2) % stock.length].clone(true);
       const size = new THREE.Box3().setFromObject(volume).getSize(new THREE.Vector3());
-      const scale = (0.6 + 0.11 * Math.cos(i * 0.9 + row)) / size.y;
+      const scale = (1.04 + 0.11 * Math.cos(i * 0.9 + row)) / size.y;
       const thickness = size.x * scale;
       volume.scale.setScalar(scale);
-      volume.position.set(x + thickness / 2, floor * 1.54 - 1.78 + 0.008, -0.23);
+      volume.position.set(x + thickness / 2, floor * 1.54 - 1.78 + 0.008, 0.22 + 0.035 * Math.cos(i + row));
       object.add(volume);
       x += thickness + 0.012;
     }
@@ -49,7 +49,8 @@ export function createCabinet(furniture, stock) {
       const opening = THREE.MathUtils.smootherstep(local, 0, 1.28);
       const closing = THREE.MathUtils.smootherstep(local, 3.62, 5.28);
       const resting = [0.57, 0.76, 0.42, 0.6][i];
-      const angle = paused ? resting : opening * (1.86 - (1.86 - resting) * closing);
+      const swing = 1.59;
+      const angle = paused ? resting : opening * (swing - (swing - resting) * closing);
       door.rotation.y = (i % 2 === 0 ? -1 : 1) * angle;
     }
   }

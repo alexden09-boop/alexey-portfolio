@@ -18,13 +18,14 @@ export async function createSculpture(state, choreography) {
   }
   container.classList.toggle('archive-loading', !state.paused);
   const loader = new GLTFLoader();
-  const [furniture, library, studio] = await Promise.all([
+  const [furniture, library, studio, bindingGrain] = await Promise.all([
     loader.loadAsync('assets/archive/cabinet.glb'),
-    loader.loadAsync('assets/archive/volumes.glb'),
+    loader.loadAsync('assets/archive/volumes.glb?v=2'),
     new HDRLoader().loadAsync('assets/archive/studio.hdr'),
+    new THREE.TextureLoader().loadAsync('assets/archive/binding-grain.webp'),
   ]);
   const renderer = new THREE.WebGLRenderer({ canvas, context, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.03;
@@ -63,6 +64,15 @@ export async function createSculpture(state, choreography) {
   const group = new THREE.Group();
   scene.add(group);
   const stock = library.scene.children;
+  const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  bindingGrain.anisotropy = anisotropy;
+  bindingGrain.wrapS = bindingGrain.wrapT = THREE.RepeatWrapping;
+  library.scene.traverse((mesh) => {
+    if (!mesh.isMesh) return;
+    for (const texture of [mesh.material.map, mesh.material.normalMap, mesh.material.roughnessMap]) {
+      if (texture) texture.anisotropy = anisotropy;
+    }
+  });
   const paper = stock[0].children.find((mesh) => mesh.material?.name.endsWith('_paper'))?.material;
   if (paper) {
     paper.color.setHex(0xdecda9);
@@ -88,7 +98,7 @@ export async function createSculpture(state, choreography) {
   }
   const cabinet = createCabinet(furniture.scene, stock);
   group.add(cabinet.object);
-  const books = createBooks(group, camera, state, container, stock);
+  const books = createBooks(group, camera, state, container, stock, bindingGrain);
   group.traverse((m) => {
     if (m.isMesh) {
       m.castShadow = true;
@@ -120,6 +130,7 @@ export async function createSculpture(state, choreography) {
   let lost = false,
     drag = 0;
   const entranceStart = state.time;
+  let lastRender = -1;
   let elapsed = 0,
     lastInput = -10,
     oldX = 0,
@@ -147,7 +158,10 @@ export async function createSculpture(state, choreography) {
       lastInput = state.time;
     }
     elapsed = Math.max(elapsed, state.paused ? 5.7 : state.time - entranceStart);
-    if (dt > 0 && elapsed > 5.65 && state.time - lastInput > 2.3) return;
+    // Only the gentle idle drift runs at half rate. Input and the flight use the normal render cadence.
+    if (dt > 0 && elapsed > 5.65 && state.time - lastInput > 2.3 && state.time - lastRender < 1 / 30 - 0.001)
+      return;
+    lastRender = state.time;
     const ease = 1 - Math.exp(-dt * 2.8);
     state.x = THREE.MathUtils.lerp(state.x, state.tx, ease);
     state.y = THREE.MathUtils.lerp(state.y, state.ty, ease);
@@ -157,7 +171,7 @@ export async function createSculpture(state, choreography) {
       -0.2 + drag + state.x * 0.045 - (1 - choreography.arrival) * 0.07,
       -0.008
     );
-    group.position.set(0.14, 0, 0);
+    group.position.set(0, 0, 0);
     cabinet.update(elapsed, state.paused);
     books.update(elapsed, dt);
     render();
@@ -168,7 +182,7 @@ export async function createSculpture(state, choreography) {
     if (!width || !height) return;
     renderer.setSize(width, height, false);
     const aspect = width / height;
-    const span = Math.max(4.3, 5.05 / aspect);
+    const span = Math.max(4.3, 6.35 / aspect);
     camera.aspect = aspect;
     camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(span / (2 * camera.position.z)));
     camera.updateProjectionMatrix();
@@ -238,6 +252,7 @@ export async function createSculpture(state, choreography) {
     dispose() {
       observer.disconnect();
       books.dispose();
+      bindingGrain.dispose();
       key.shadow.dispose();
       const materials = new Set(),
         geometries = new Set(),

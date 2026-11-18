@@ -190,14 +190,28 @@
   width: min(100cqw,100cqh); height: min(100cqw,100cqh);
 }
 .scene-fallback { display: block; pointer-events: none; }
-.scene.archive-loading:not(:focus-within) .scene-fallback { content: url("assets/archive-closed.webp"); }
+.scene.archive-loading:not(:focus-within) .scene-fallback { content: url("assets/archive-closed.webp?v=2"); }
+.book-hint {
+  position: absolute; z-index: 2; top: 10%; right: calc(100% + 1.2vw);
+  display: flex; align-items: flex-start; gap: 10px; margin: 0;
+  white-space: nowrap; pointer-events: none; color: #cbbcaa;
+  font: italic 400 clamp(15px, 1vw, 20px)/1.2 Georgia, serif;
+}
+.book-hint svg { width: clamp(42px, 3.4vw, 78px); margin-top: .46em; }
+@media (prefers-reduced-motion: no-preference) {
+  .book-hint { transition: opacity .4s ease-out; }
+  .scene.archive-loading + .book-hint, .scene.ready:not(.books-presented) + .book-hint { opacity: 0; }
+}
+@media (max-width: 1000px) {
+  .book-hint { top: 0; right: auto; left: 8%; }
+}
 .scene-documents { z-index: 2; pointer-events: none; }
 .scene-document { display: block; position: absolute; cursor: pointer; pointer-events: auto; border-radius: 3px; }
 .scene-document:focus-visible { outline: 2px solid #efd6a9; outline-offset: 2px; }
-.scene-document[data-document="sites"] { left: 4.8%; top: 10.4%; width: 21.4%; height: 31.6%; }
-.scene-document[data-document="ads"] { left: 69.5%; top: 13.9%; width: 27%; height: 33.1%; }
-.scene-document[data-document="apps"] { left: 4.8%; top: 50.3%; width: 23%; height: 30.5%; }
-.scene-document[data-document="3d"] { left: 68%; top: 56.9%; width: 22.7%; height: 30.4%; }
+.scene-document[data-document="sites"] { left: 2.8%; top: 16.2%; width: 17.8%; height: 27.4%; }
+.scene-document[data-document="ads"] { left: 76.7%; top: 19.7%; width: 21.7%; height: 27%; }
+.scene-document[data-document="apps"] { left: 2.6%; top: 50.7%; width: 19.5%; height: 26.5%; }
+.scene-document[data-document="3d"] { left: 77.5%; top: 54.6%; width: 18.2%; height: 24.9%; }
 .scene.ready .scene-documents { width: 100%; height: 100%; }
 .scene.ready .book-in-cabinet { visibility: hidden; }
 .scene.ready .scene-document { left: var(--doc-x); top: var(--doc-y); width: var(--doc-w); height: var(--doc-h); }
