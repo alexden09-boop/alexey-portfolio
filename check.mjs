@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import { chromium } from 'playwright';
+
+const base = new URL(process.env.SITE_URL || 'http://127.0.0.1:4320/');
+const sceneURL = new URL('3d/index.html', base);
+const browser = await chromium.launch({
+  executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
+  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+});
+try {
+  const page = await browser.newPage({viewport: {width: 1280, height: 800}, reducedMotion: 'reduce'});
+  const errors = [], requests = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('response', response => {
+    if (response.status() >= 400) errors.push(response.status() + ' ' + response.url());
+  });
+  page.on('request', request => { requests.push(request.url()); });
+  await page.addInitScript(() => {
+    window.sceneDraws = 0;
+    const draw = WebGL2RenderingContext.prototype.drawElements;
+    WebGL2RenderingContext.prototype.drawElements = function (...args) {
+      window.sceneDraws++;
+      return draw.apply(this, args);
+    };
+  });
+  const response = await page.goto(base.href);
+  assert.equal(response.status(), 200);
+  await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
+  const telegram = page.locator('a[data-telegram-link]');
+  assert.deepEqual(await telegram.evaluateAll(links => links.map(link => link.href)),
+    ['https://t.me/Alex_codlay', 'https://t.me/Alex_codlay']);
+  for (const id of ['sites', 'ads', 'apps']) {
+    const link = page.locator('[data-document="' + id + '"]');
+    await link.click();
+    assert.equal(new URL(page.url()).hash, '#service-' + id);
+  }
+  await page.locator('.story-start').click();
+  await page.waitForFunction(() => window.portfolioStatus().storyPhase === 4);
+  await page.locator('[data-document="3d"]').click();
+  await page.waitForURL(url => url.pathname === sceneURL.pathname);
+  await page.waitForFunction(() => window.sceneDraws > 80, null, {timeout: 60000});
+  assert.ok(requests.some(url => url.includes(sceneURL.pathname.replace('index.html', 'assets/geometries/')) && url.endsWith('.drc')));
+  assert.ok(requests.some(url => url.endsWith('.ktx2')));
+  assert.ok(!requests.some(url => /\/audio\/|\.ogg|audioworker/i.test(url)));
+  assert.deepEqual(requests.filter(url => url.startsWith(base.origin + '/') && !url.startsWith(base.href)), []);
+  await page.setViewportSize({width: 390, height: 844});
+  await page.getByRole('link', {name: 'Назад на визитку'}).click();
+  await page.waitForURL(new URL('#hybrid', base).href);
+  await page.locator('.menu-toggle').click();
+  await page.locator('#mobile-menu a[href="#contact"]').click();
+  await page.waitForURL(new URL('#contact', base).href);
+  assert.equal(await page.locator('.contact-telegram').getAttribute('href'), 'https://t.me/Alex_codlay');
+  assert.deepEqual(errors, []);
+  console.log('Checked portfolio, navigation, presentation, Telegram links, live 3D rendering and return at ' + base.href);
+} finally { await browser.close(); }

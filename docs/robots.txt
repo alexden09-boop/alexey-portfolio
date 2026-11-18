@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://alexden09-boop.github.io/alexey-portfolio/sitemap.xml
