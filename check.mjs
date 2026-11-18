@@ -26,6 +26,9 @@ try {
   const response = await page.goto(base.href);
   assert.equal(response.status(), 200);
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
+  await page.waitForFunction(() => window.portfolioStatus().renderer === 'webgl' &&
+    window.portfolioStatus().documents.length === 4);
+  assert.ok(await page.evaluate(() => window.portfolioStatus().documents.every(book => book.progress === 1)));
   const telegram = page.locator('a[data-telegram-link]');
   assert.deepEqual(await telegram.evaluateAll(links => links.map(link => link.href)),
     ['https://t.me/Alex_codlay', 'https://t.me/Alex_codlay']);

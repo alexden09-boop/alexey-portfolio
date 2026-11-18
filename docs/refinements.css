@@ -175,31 +175,32 @@
   .collaboration .about-title { font-size: 39px; }
 }
 
-/* Specific services and a layered initial replace the abstract hero slogan. */
+/* Hero layout and interactive bookcase. */
 .hybrid-title { font-size: clamp(56px, 6.25vw, 112px); }
 .hybrid-make { font-size: .79em; color: #b7aec7; }
 .hybrid-volume .word { word-spacing: .08em; }
 .hybrid-intro { max-width: 510px; }
-.scene-fallback { left: 22%; top: 12%; width: 56%; height: 76%; transform: rotate(-8deg); }
-.scene-fallback svg { display: block; width: 100%; height: 100%; filter: drop-shadow(25px 28px 25px #0005); }
 .hybrid-hero { height: max(840px, 100svh); }
-.hybrid-scene-slot { right: 0; top: 8%; width: 53%; height: 86%; }
-.scene-documents { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-.scene-document { position: absolute; display: block; width: 27%; height: 18%; left: 48%; top: 20%; pointer-events: auto; border-radius: 5px; cursor: pointer; }
-.scene-document:nth-child(2) { top: 44%; left: 59%; transform: rotate(-4deg); }
-.scene-document:nth-child(3) { top: 68%; left: 51%; transform: rotate(4deg); }
-.scene-document:nth-child(4) { top: 70%; left: 20%; transform: rotate(3deg); }
-.document-fallback { display: block; height: 100%; padding: 12%; background: #24252a; border: 1px solid #77717f; border-radius: 3px; box-shadow: 5px 12px 26px #0005; color: #f1ece5; }
-.document-fallback strong { display: flex; align-items: center; justify-content: space-between; gap: 9px; font-size: clamp(12px,1.3vw,23px); font-weight: 500; }
-.document-fallback i { color: #d6ad91; font-style: normal; }
-.document-sketch { display: block; margin-top: 11%; height: 47%; border: 1px solid #7c7385; background: linear-gradient(90deg,#c2b6cf40 45%,transparent 45%) 12% 25% / 80% 18% no-repeat,linear-gradient(#423c4b,#423c4b); }
-.sketch-ad { background: linear-gradient(90deg,#b78e7790 34%,transparent 34%) center / 80% 80% no-repeat,#3a343f; }
-.sketch-app { background: repeating-linear-gradient(0deg,transparent 0 19%,#9d8aaa40 19% 22%); }
-.sketch-volume { background: #34303a; color: #d8c5bd; }
-.sketch-volume svg { display: block; width: 100%; height: 100%; }
-.scene.ready .scene-document { left: var(--doc-x,0px); top: var(--doc-y,0px); width: var(--doc-w,0px); height: var(--doc-h,0px); transform: none; visibility: var(--doc-visibility,hidden); }
-.scene.ready .document-fallback { opacity: 0; }
-.scene.ready .scene-document:focus-visible { outline: 1px solid #dfb29d; outline-offset: 0; }
+.hybrid-scene-slot { right: 1%; top: 8%; width: 40%; height: 86%; }
+@media (min-width: 1880px) { .hybrid-scene-slot { width: 46%; } }
+@media (min-width: 1001px) and (max-width: 1100px) { .hybrid-scene-slot { width: 37%; } }
+.scene { container-type: size; }
+.scene-fallback, .scene-documents {
+  position: absolute; inset: 0; margin: auto; transform: none;
+  width: min(100cqw,100cqh); height: min(100cqw,100cqh);
+}
+.scene-fallback { display: block; pointer-events: none; }
+.scene.archive-loading:not(:focus-within) .scene-fallback { content: url("assets/archive-closed.webp"); }
+.scene-documents { z-index: 2; pointer-events: none; }
+.scene-document { display: block; position: absolute; cursor: pointer; pointer-events: auto; border-radius: 3px; }
+.scene-document:focus-visible { outline: 2px solid #efd6a9; outline-offset: 2px; }
+.scene-document[data-document="sites"] { left: 4.8%; top: 10.4%; width: 21.4%; height: 31.6%; }
+.scene-document[data-document="ads"] { left: 69.5%; top: 13.9%; width: 27%; height: 33.1%; }
+.scene-document[data-document="apps"] { left: 4.8%; top: 50.3%; width: 23%; height: 30.5%; }
+.scene-document[data-document="3d"] { left: 68%; top: 56.9%; width: 22.7%; height: 30.4%; }
+.scene.ready .scene-documents { width: 100%; height: 100%; }
+.scene.ready .book-in-cabinet { visibility: hidden; }
+.scene.ready .scene-document { left: var(--doc-x); top: var(--doc-y); width: var(--doc-w); height: var(--doc-h); }
 .service-item[id] { scroll-margin-top: 16px; }
 .service-item[id]:focus { outline: none; }
 .service-item[id]:target h3 { color: #dfb29d; }
@@ -215,9 +216,7 @@
   .hybrid-intro { margin-top: 315px; }
 }
 
-@media (max-width: 1000px) {
-  .scene-document:nth-child(4) { top: 42%; left: 16%; }
-}
+
 @media (min-width: 761px) and (max-width: 1000px) {
   .hybrid-hero { height: auto; min-height: 1280px; max-height: none; }
   .hybrid-scene-slot { top: 450px; right: 6%; width: 88%; height: 530px; }
@@ -227,7 +226,6 @@
   .hybrid-hero { height: auto; min-height: 900px; }
   .hybrid-scene-slot { right: 0; top: 325px; width: 100%; height: 410px; }
   .hybrid-intro { margin-top: 445px; }
-  .document-fallback strong { font-size: 12px; }
 }
 @media (max-width: 380px) {
   .hybrid-scene-slot { top: 305px; height: 380px; }

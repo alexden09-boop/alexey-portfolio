@@ -1,0 +1,10 @@
+The archive uses three CC0 assets from Poly Haven.
+
+Gothic Cabinet 01 — https://polyhaven.com/a/GothicCabinet_01
+Book Encyclopedia Set 01 — https://polyhaven.com/a/book_encyclopedia_set_01
+Studio Small 09 — https://polyhaven.com/a/studio_small_09
+Asset license — https://polyhaven.com/license
+
+The local GLB files contain the cabinet and a selection of five book meshes.
+The environment is resized for the web. The cover stamps, arrangement,
+navigation, animation and poster renders were created for this website.

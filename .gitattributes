@@ -7,3 +7,6 @@
 *.exr binary
 *.png binary
 *.jpg binary
+*.webp binary
+*.glb binary
+*.hdr binary

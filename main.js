@@ -105,7 +105,7 @@ function setupMotion(entrance = false, restart = false) {
     if (entrance) {
       intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
       intro.from('.hybrid-line', { y: 45, opacity: 0, stagger: .14, duration: 1.2 }, .1)
-        .from('.scene', { opacity: 0, duration: 1.8 }, .15)
+        .from('.scene', { opacity: .45, duration: .55 }, .05)
         .from(choreography, { arrival: 0, duration: 2.8, ease: 'sine.out' }, .15)
         .from('.hybrid-intro', { y: 24, opacity: 0, duration: 1 }, .7)
         .from('.hybrid-actions', { y: 18, opacity: 0, duration: .9 }, .85);
@@ -516,9 +516,11 @@ document.addEventListener('pointermove', event => {
   state.tx = event.clientX / innerWidth * 2 - 1;
   state.ty = event.clientY / innerHeight * 2 - 1;
 }, { passive: true });
-try { sculpture = createSculpture(state, choreography); }
-catch { $('#scene').classList.remove('ready'); $('#scene').dataset.renderer = 'fallback'; $('#scene canvas')?.remove(); }
-if (!sculpture) $('#scene').setAttribute('aria-label', 'Буква А и документы с направлениями работы');
+createSculpture(state, choreography).then(model => { sculpture = model; }).catch(() => {
+  $('#scene').classList.remove('ready','archive-loading');
+  $('#scene').dataset.renderer = 'fallback';
+  $('#scene canvas')?.remove();
+});
 const studyObserver = new IntersectionObserver(([entry]) => { studyVisible = entry.isIntersecting && entry.intersectionRatio >= .25; if (studyVisible) product?.frame(showcaseProgress.value, true); syncMotion(); }, { threshold: [0, .25] });
 studyObserver.observe($('.showcase-stage'));
 const counterObserver = new IntersectionObserver(([entry]) => { counterVisible = entry.isIntersecting && entry.intersectionRatio >= .2; syncMotion(); }, { threshold: [0, .2] });
@@ -539,7 +541,7 @@ gsap.ticker.add((time, delta) => {
   if (!canAnimate()) return;
   if (studyVisible) product?.frame(showcaseProgress.value);
   if (state.heroVisible) {
-    state.time += Math.min(delta / 1000, .05);
+    state.time += Math.min(delta / 1000, .15);
     sculpture?.frame(Math.min(delta / 1000, .05));
   }
 });

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'docs');
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'application/javascript', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png', '.xml': 'application/xml', '.wasm': 'application/wasm', '.json': 'application/json', '.jpg': 'image/jpeg', '.ktx2': 'image/ktx2', '.drc': 'application/octet-stream', '.woff': 'font/woff' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'application/javascript', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.glb': 'model/gltf-binary', '.xml': 'application/xml', '.wasm': 'application/wasm', '.json': 'application/json', '.jpg': 'image/jpeg', '.ktx2': 'image/ktx2', '.drc': 'application/octet-stream', '.woff': 'font/woff' };
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
