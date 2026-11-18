@@ -149,6 +149,7 @@ export function createLeafParticles(edition, width, height, surfaceZ, edgeAt) {
   const uniforms = {
     atlas: { value: atlas },
     time: { value: 0 },
+    snowTime: { value: 0 },
     focal: { value: 1 },
     dpr: { value: 1 },
     snow: { value: Number(snow) },
@@ -164,10 +165,11 @@ export function createLeafParticles(edition, width, height, surfaceZ, edgeAt) {
       attribute vec3 drift, socket;
       attribute vec2 life;
       attribute vec4 style;
-      uniform float time, focal, dpr, snow, pixels, foil;
+      uniform float time, snowTime, focal, dpr, snow, pixels, foil;
       varying float alpha, angle, tile, glint;
       void main() {
         float age = clamp((time - life.x) / life.y, 0., 1.);
+        if (snowTime > 0.) age = fract(max(0., (time + snowTime - life.x) / life.y));
         float arc = sin(3.14159 * age);
         vec3 p = position + drift * (age * (1.65 - .65 * age));
         p.x += sin(age * 5. + style.y) * arc * (.035 + snow * .06);
@@ -199,8 +201,9 @@ export function createLeafParticles(edition, width, height, surfaceZ, edgeAt) {
   points.frustumCulled = false;
   return {
     points,
-    update(t, focal, dpr) {
+    update(t, focal, dpr, snowTime) {
       uniforms.time.value = t;
+      uniforms.snowTime.value = snowTime;
       uniforms.focal.value = focal;
       uniforms.dpr.value = dpr;
     },

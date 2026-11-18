@@ -155,7 +155,7 @@ export function makeFolioFilm({ renderer, scene, camera, container, book, host }
     finalRotation = new THREE.Quaternion(),
     artPoint = new THREE.Vector3();
   const slant = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.07, -0.1, 0.024));
-  function frame(t) {
+  function frame(t, snowTime = 0) {
     const width = host.clientWidth,
       height = host.clientHeight;
     if (width !== vw || height !== vh) {
@@ -193,7 +193,7 @@ export function makeFolioFilm({ renderer, scene, camera, container, book, host }
       l.mesh.visible = t > 0.16 && turn < 0.999;
       l.bend(turn * 2.96, curlAt(turn));
     }
-    motes.update(t, focal, renderer.getPixelRatio());
+    motes.update(t, focal, renderer.getPixelRatio(), snowTime);
     imprint.update(smoothstep(t, 0.4, 0.81));
     if (iceTexture?.image.naturalWidth) {
       if (iceTexture.version === 0) iceTexture.needsUpdate = true;

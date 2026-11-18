@@ -152,6 +152,7 @@ export function createProduct() {
     renderer.render(scene, camera); frames++;
   }
   function resize() {
+    if (document.body.classList.contains('ice-open')) return;
     const width = container.clientWidth, height = container.clientHeight;
     if (!width || !height) return;
     renderer.setSize(width, height, false);

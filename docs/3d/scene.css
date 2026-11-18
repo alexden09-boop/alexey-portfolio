@@ -1,12 +1,22 @@
-html.from-folio::after {
-  content: ''; position: fixed; inset: 0; z-index: 9999; pointer-events: none;
-  background: #9ca4af url("assets/images/entrance-wide.webp") center / cover no-repeat;
-  opacity: 1; transition: opacity 360ms ease-out;
+.ice-scroll-hint {
+  position: fixed; z-index: 9000; left: 50%; bottom: max(22px, calc(env(safe-area-inset-bottom) + 12px));
+  transform: translateX(-50%); display: flex; align-items: center; gap: .8em; margin: 0;
+  white-space: nowrap; pointer-events: none; color: #fff; letter-spacing: .025em;
+  font: 400 clamp(12px,1.1vw,15px)/1.3 IBMPlexMono-Medium, monospace;
+  text-shadow: 0 1px 3px #233140, 0 0 7px #273647;
+  transition: opacity .4s ease;
 }
-@media (orientation: portrait) {
-  html.from-folio::after { background-image: url("assets/images/entrance-portrait.webp"); }
+.ice-scroll-hint[hidden], .scroll-touch { display: none; }
+.ice-scroll-hint.dismissed { opacity: 0; }
+.scroll-arrow { display: inline-block; font-size: 1.2em; }
+@media (hover: none), (pointer: coarse) {
+  .scroll-touch { display: inline; }
+  .scroll-desktop { display: none; }
 }
-html.from-folio.ice-is-live::after { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-arrow { animation: scroll-nudge 2.5s ease-in-out infinite; }
+  @keyframes scroll-nudge { 0%,65%,100% { transform: translateY(0); } 36% { transform: translateY(3px); } }
+}
 .scene-back {
   position: fixed;
   z-index: 10000;

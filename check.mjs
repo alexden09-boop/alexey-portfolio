@@ -39,16 +39,19 @@ try {
   }
   await page.locator('.story-start').click();
   await page.waitForFunction(() => window.portfolioStatus().storyPhase === 4);
+  const readingRoomURL = page.url();
   await page.locator('[data-document="3d"]').click();
   await page.waitForURL(url => url.pathname === sceneURL.pathname);
-  await page.waitForFunction(() => window.sceneDraws > 80, null, {timeout: 60000});
+  await page.locator('.ice-opened.ice-ready').waitFor({timeout: 60000});
+  const room = page.frame({name:'portfolio-ice'});
+  await room.waitForFunction(() => window.sceneDraws > 80, null, {timeout: 60000});
   assert.ok(requests.some(url => url.includes(sceneURL.pathname.replace('index.html', 'assets/geometries/')) && url.endsWith('.drc')));
   assert.ok(requests.some(url => url.endsWith('.ktx2')));
   assert.ok(!requests.some(url => /\/audio\/|\.ogg|audioworker/i.test(url)));
   assert.deepEqual(requests.filter(url => url.startsWith(base.origin + '/') && !url.startsWith(base.href)), []);
   await page.setViewportSize({width: 390, height: 844});
-  await page.getByRole('link', {name: 'Назад на визитку'}).click();
-  await page.waitForURL(new URL('#hybrid', base).href);
+  await room.getByRole('link', {name: 'Назад на визитку'}).click();
+  await page.waitForURL(readingRoomURL);
   await page.locator('.menu-toggle').click();
   await page.locator('#mobile-menu a[href="#contact"]').click();
   await page.waitForURL(new URL('#contact', base).href);
@@ -75,10 +78,21 @@ try {
   for (const edition of ['sites', 'ads', 'apps', '3d']) {
     const link = motion.locator('[data-document="' + edition + '"]');
     await link.focus();
+    let warmDocument;
+    if (edition === '3d') {
+      const warmed = motion.frameLocator('.ice-portal iframe');
+      await warmed.locator('html[data-ice-ready]').waitFor({ state: 'attached', timeout: 60000 });
+      warmDocument = await warmed.locator('body').evaluate(() => performance.timeOrigin);
+    }
     await motion.keyboard.press('Enter');
     if (edition === '3d') {
       await motion.waitForURL(sceneURL.href);
-      await motion.waitForFunction(() => !document.documentElement.classList.contains('from-folio'));
+      await motion.locator('.ice-opened.ice-ready').waitFor();
+      const room = motion.frame({name:'portfolio-ice'});
+      assert.equal(await room.evaluate(() => performance.timeOrigin), warmDocument);
+      await room.locator('.ice-scroll-hint:not([hidden])').waitFor();
+      await motion.keyboard.press('ArrowDown');
+      await room.locator('.ice-scroll-hint.dismissed').waitFor({state:'attached'});
     } else {
       await motion.waitForURL(new URL('#service-' + edition, base).href);
       await motion.locator('.folio-transition').waitFor({ state: 'detached' });
@@ -90,6 +104,10 @@ try {
     assert.equal(await motion.evaluate(key => sessionStorage.getItem('qa-film-' + key), edition), 'drawn');
   }
   assert.deepEqual(errors, []);
+  await motion.goto(sceneURL.href);
+  await motion.locator('.ice-scroll-hint:not([hidden])').waitFor({ timeout: 60000 });
+  await motion.getByRole('link', {name: 'Назад на визитку'}).click();
+  await motion.waitForURL(new URL('#hybrid', base).href);
   console.log('Checked four animated folios, particle draws, keyboard navigation and browser history.');
   console.log('Checked portfolio, navigation, presentation, Telegram links, live 3D rendering and return at ' + base.href);
 } finally { await browser.close(); }

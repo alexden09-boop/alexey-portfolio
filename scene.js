@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { createCabinet } from './cabinet.js';
+import { createFireflies } from './cabinet-fireflies.js';
 import { createBooks } from './documents.js';
 import { makeFolioFilm } from './folio-film.js';
 
@@ -103,6 +104,8 @@ export async function createSculpture(state, choreography) {
   shelfLight.position.set(0, .24, .94);
   group.add(shelfLight);
   const books = createBooks(group, camera, state, container, stock, bindingGrain);
+  const fireflies = createFireflies();
+  group.add(fireflies.points);
   group.traverse((m) => {
     if (m.isMesh) {
       m.castShadow = true;
@@ -179,10 +182,11 @@ export async function createSculpture(state, choreography) {
     group.position.set(0, 0, 0);
     cabinet.update(elapsed, state.paused);
     books.update(elapsed, dt);
+    fireflies.update(state.paused ? 0 : state.time, renderer.getPixelRatio() * Math.min(1.18, Math.max(.79, container.clientWidth / 690)));
     render();
   }
   function resize() {
-    if (filming) return;
+    if (filming || document.body.classList.contains('ice-open')) return;
     const width = container.clientWidth,
       height = container.clientHeight;
     if (!width || !height) return;
@@ -283,6 +287,7 @@ export async function createSculpture(state, choreography) {
     dispose() {
       observer.disconnect();
       books.dispose();
+      fireflies.dispose();
       bindingGrain.dispose();
       key.shadow.dispose();
       const materials = new Set(),

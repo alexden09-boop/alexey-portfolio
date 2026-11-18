@@ -4,13 +4,14 @@ const W = 720,
   H = 960;
 const clamp = THREE.MathUtils.clamp;
 export const iceImage = () => (matchMedia('(orientation: portrait)').matches ? 'portrait' : 'wide');
+const iceAssets = new URL('3d/assets/images/', document.baseURI);
 const iceFrames = new Map();
 export function primeIce() {
   const key = iceImage();
   if (!iceFrames.has(key)) {
     const img = new Image();
     img.decoding = 'async';
-    img.src = '3d/assets/images/entrance-' + key + '.webp';
+    img.src = new URL('entrance-' + key + '.webp?v=ice-2', iceAssets).href;
     iceFrames.set(key, img);
   }
   return iceFrames.get(key);

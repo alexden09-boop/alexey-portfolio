@@ -72,7 +72,7 @@ let intro = null;
 let dialogReturn = null;
 let menuOpen = false;
 
-function canAnimate() { return !state.paused && !document.hidden && !menuOpen && !$('dialog[open]'); }
+function canAnimate() { return !state.paused && !document.hidden && !menuOpen && !document.body.classList.contains('ice-open') && !$('dialog[open]'); }
 function syncMotion() {
   const paused = !canAnimate();
   if (intro && intro.progress() < 1) intro.paused(paused);
@@ -313,11 +313,23 @@ function buildToolkitMotion(reelTimes) {
   });
 }
 reduced.addEventListener('change', event => setPaused(event.matches));
-desktop.addEventListener('change', () => { closeMenu(); setupMotion(false); ScrollTrigger.refresh(); });
+desktop.addEventListener('change', () => {
+  if (document.body.classList.contains('ice-open')) return;
+  closeMenu(); setupMotion(false); ScrollTrigger.refresh();
+});
 window.addEventListener('resize', () => {
-  if (storyMobile !== (innerWidth <= 760)) { setupMotion(false); ScrollTrigger.refresh(); }
+  if (!document.body.classList.contains('ice-open') && storyMobile !== (innerWidth <= 760)) { setupMotion(false); ScrollTrigger.refresh(); }
 });
 document.addEventListener('visibilitychange', syncMotion);
+document.addEventListener('portfolio-view-change', () => {
+  if (!document.body.classList.contains('ice-open')) {
+    if (storyMobile !== (innerWidth <= 760)) setupMotion(false);
+    sculpture?.resize();
+    product?.resize();
+    ScrollTrigger.refresh();
+  }
+  syncMotion();
+});
 
 function closeMenu(restore = false) {
   menuOpen = false;
