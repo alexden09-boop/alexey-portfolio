@@ -32,7 +32,23 @@ try {
   const telegram = page.locator('a[data-telegram-link]');
   assert.deepEqual(await telegram.evaluateAll(links => links.map(link => link.href)),
     ['https://t.me/Alex_codlay', 'https://t.me/Alex_codlay']);
-  for (const id of ['sites', 'ads', 'apps']) {
+  const sitesURL = new URL('sites/', base);
+  await page.locator('[data-document="sites"]').click();
+  await page.waitForURL(sitesURL.href);
+  const works = page.locator('.card');
+  const addresses = await works.locator('a').evaluateAll(links => links.map(a => a.href));
+  assert.equal(new Set(addresses).size, 19);
+  assert.equal(addresses.length, 19);
+  await page.getByRole('button', { name: 'Веб-сервисы' }).click();
+  assert.equal(await page.locator('.card:visible').count(), 4);
+  await page.locator('.card:visible a').first().click();
+  await page.getByRole('heading', { name: 'Капсула времени' }).waitFor();
+  await page.goBack();
+  assert.equal(await page.locator('.card:visible').count(), 4);
+  await page.getByRole('button', { name: 'Все работы' }).click();
+  await page.locator('.mast a').first().click();
+  await page.waitForURL(new URL('#hybrid', base).href);
+  for (const id of ['ads', 'apps']) {
     const link = page.locator('[data-document="' + id + '"]');
     await link.click();
     assert.equal(new URL(page.url()).hash, '#service-' + id);
@@ -93,6 +109,12 @@ try {
       await room.locator('.ice-scroll-hint:not([hidden])').waitFor();
       await motion.keyboard.press('ArrowDown');
       await room.locator('.ice-scroll-hint.dismissed').waitFor({state:'attached'});
+    } else if (edition === 'sites') {
+      await motion.waitForURL(sitesURL.href);
+      await motion.getByRole('heading', { level: 1 }).waitFor();
+      await motion.goBack();
+      await motion.waitForURL(base.href);
+      await motion.waitForFunction(() => window.portfolioStatus?.().documents.filter(b => b.progress === 1).length === 4);
     } else {
       await motion.waitForURL(new URL('#service-' + edition, base).href);
       await motion.locator('.folio-transition').waitFor({ state: 'detached' });

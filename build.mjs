@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
 import { runInNewContext } from 'node:vm';
 import { telegramContact } from './telegram.js';
+import { buildCatalog } from './web-catalog/build.mjs';
 import { mkdir, copyFile, readFile, writeFile, cp, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +20,7 @@ const html = (await readFile(path.join(root, 'index.html'), 'utf8'))
   .replaceAll('{{withTelegram}}', telegram ? '' : 'hidden')
   .replaceAll('{{withoutTelegram}}', telegram ? 'hidden' : '');
 await writeFile(path.join(output, 'index.html'), html);
+await buildCatalog(output, telegram);
 await cp(path.join(root, '3d'), path.join(output, '3d'), { recursive: true });
 for (const filename of ['hero.css', 'site.css', 'showcase.css', 'refinements.css', 'production.css', 'content.js', 'favicon.svg', 'robots.txt', 'sitemap.xml']) await copyFile(path.join(root, filename), path.join(output, filename));
 let css = '';

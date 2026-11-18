@@ -45,7 +45,7 @@ export function connectFolios(links, openFilm, reduced) {
         return node;
       }
       const veil = layer('veil');
-      const picture = !target && layer('ice-frame');
+      const picture = isIce && layer('ice-frame');
       const host = layer('canvas');
       const heading = title && layer('heading');
       document.body.append(overlay);
@@ -122,6 +122,11 @@ export function connectFolios(links, openFilm, reduced) {
         }
         leaving = true;
         cancelAnimationFrame(frame);
+        if (!isIce) {
+          clean();
+          window.location.assign(link.href);
+          return;
+        }
         picture.style.opacity = 1;
         host.style.opacity = 0;
         veil.style.opacity = 1;
@@ -180,7 +185,8 @@ export function connectFolios(links, openFilm, reduced) {
           }
           const point = film.frame(t, held * .40);
           if (isIce && t >= .72 && ice.ready) ice.preview();
-          veil.style.opacity = between(t, 0.03, 0.64) * (target ? 1 - between(t, 0.81, 1) : 1 - between(t, .72, .96));
+          const veilExit = target ? between(t, 0.81, 1) : isIce ? between(t, .72, .96) : 0;
+          veil.style.opacity = between(t, 0.03, 0.64) * (1 - veilExit);
           host.style.opacity = 1 - between(t, 0.76, 0.97);
           if (picture) picture.style.opacity = ice.ready ? 0 : between(t, 0.72, 0.94);
           if (heading) {
