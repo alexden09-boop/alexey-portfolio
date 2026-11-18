@@ -30,3 +30,47 @@ window.addEventListener('pageshow', sync);
 window.addEventListener('popstate', sync);
 sync();
 controls.hidden = false;
+
+const inFilm = window.self !== window.top;
+let fromBook = inFilm;
+if (!inFilm) {
+  try {
+    const arrived = Number(sessionStorage.getItem('folio-catalog-arrival'));
+    fromBook = arrived > 0 && Date.now() - arrived < 15000;
+    sessionStorage.removeItem('folio-catalog-arrival');
+  } catch {}
+}
+document.documentElement.classList.toggle('from-book', fromBook);
+
+if ('IntersectionObserver' in window) {
+  const reveal = new IntersectionObserver(entries => {
+    for (const entry of entries) if (entry.isIntersecting) {
+      entry.target.classList.add('in-view');
+      reveal.unobserve(entry.target);
+    }
+  }, { threshold: .06 });
+  cards.forEach(card => reveal.observe(card));
+}
+const pointerMotion = matchMedia('(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference)');
+for (const card of cards) {
+  const mount = card.querySelector('.mount');
+  const print = mount.querySelector('.print');
+  function prepareSecond() {
+    if (!pointerMotion.matches || print.querySelector('.second-screen')) return;
+    const image = new Image();
+    image.alt = '';
+    image.className = 'second-screen';
+    print.append(image);
+    image.src = print.dataset.second;
+    image.decode().then(() => print.classList.add('spread-ready')).catch(() => image.remove());
+  }
+  card.addEventListener('pointerenter', prepareSecond);
+  card.addEventListener('focusin', prepareSecond);
+  mount.addEventListener('pointermove', event => {
+    if (!pointerMotion.matches) return;
+    const box = mount.getBoundingClientRect();
+    mount.style.setProperty('--ry', (4 * ((event.clientX - box.left) / box.width - .5)).toFixed(2) + 'deg');
+    mount.style.setProperty('--rx', (3 * (.5 - (event.clientY - box.top) / box.height)).toFixed(2) + 'deg');
+  }, { passive:true });
+  mount.addEventListener('pointerleave', () => { mount.style.removeProperty('--ry'); mount.style.removeProperty('--rx'); });
+}

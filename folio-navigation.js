@@ -47,6 +47,17 @@ export function connectFolios(links, openFilm, reduced) {
       const veil = layer('veil');
       const picture = isIce && layer('ice-frame');
       const host = layer('canvas');
+      const catalog = link.dataset.document === 'sites' && layer('catalog-sheet');
+      let catalogReady = false;
+      if (catalog) {
+        const page = document.createElement('iframe');
+        page.title = 'Открывается каталог сайтов';
+        page.tabIndex = -1;
+        page.inert = true;
+        page.addEventListener('load', () => { catalogReady = true; }, { once: true });
+        page.src = link.href;
+        catalog.append(page);
+      }
       const heading = title && layer('heading');
       document.body.append(overlay);
       let film;
@@ -64,7 +75,7 @@ export function connectFolios(links, openFilm, reduced) {
         return;
       } // The native link still works with a static shelf.
       event.preventDefault();
-      let frame, waitControls, waitSince, held = 0,
+      let frame, navigationTimeout, waitControls, waitSince, held = 0,
         landing,
         takeoff,
         committed = false,
@@ -87,6 +98,7 @@ export function connectFolios(links, openFilm, reduced) {
       function clean() {
         if (!active) return;
         cancelAnimationFrame(frame);
+        clearTimeout(navigationTimeout);
         document.removeEventListener('keydown', keydown);
         document.removeEventListener('visibilitychange', visibility);
         window.removeEventListener('pagehide', clean);
@@ -123,7 +135,14 @@ export function connectFolios(links, openFilm, reduced) {
         leaving = true;
         cancelAnimationFrame(frame);
         if (!isIce) {
-          clean();
+          if (catalog) {
+            catalog.style.opacity = catalogReady ? '1' : '0';
+            catalog.style.transform = 'none';
+            catalog.style.clipPath = 'inset(0)';
+            try { sessionStorage.setItem('folio-catalog-arrival', String(Date.now())); } catch {}
+          }
+          // Keep the last painted sheet in place until the destination document takes over.
+          navigationTimeout = setTimeout(clean, 3500);
           window.location.assign(link.href);
           return;
         }
@@ -188,6 +207,12 @@ export function connectFolios(links, openFilm, reduced) {
           const veilExit = target ? between(t, 0.81, 1) : isIce ? between(t, .72, .96) : 0;
           veil.style.opacity = between(t, 0.03, 0.64) * (1 - veilExit);
           host.style.opacity = 1 - between(t, 0.76, 0.97);
+          if (catalog && catalogReady) {
+            const open = between(t, .56, .98);
+            catalog.style.opacity = String(between(t, .56, .84));
+            catalog.style.clipPath = 'inset(' + ((1-open)*13) + '% ' + ((1-open)*37) + '% ' + ((1-open)*13) + '% ' + ((1-open)*9) + '%)';
+            catalog.style.transform = 'perspective(1600px) rotateY(' + ((1-open)*-19) + 'deg) scale(' + (.88 + .12*open) + ')';
+          }
           if (picture) picture.style.opacity = ice.ready ? 0 : between(t, 0.72, 0.94);
           if (heading) {
             heading.style.opacity = between(t, 0.54, 0.73);
