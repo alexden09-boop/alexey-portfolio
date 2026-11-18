@@ -198,12 +198,20 @@
 }
 @media(prefers-reduced-motion:reduce) { .service-item.in-view .service-art > div { animation:none; } }
 
-@media (prefers-reduced-motion: no-preference) {
+@media screen and (prefers-reduced-motion: no-preference) {
+  .arrival-pending, .scroll-arrival {
+    --arrival-opacity: .4;
+    --arrival-rise: clamp(16px, 1.7vw, 24px);
+  }
+  .arrival-pending:not(:target):not(:focus-within) {
+    opacity: var(--arrival-opacity);
+    translate: 0 var(--arrival-rise);
+  }
   .scroll-arrival {
-    animation: scroll-arrival 420ms cubic-bezier(.22, .68, .28, 1);
+    animation: scroll-arrival 1s cubic-bezier(.25, .46, .35, 1);
   }
   @keyframes scroll-arrival {
-    from { opacity: .78; translate: 0 clamp(5px, .6vw, 8px); }
+    from { opacity: var(--arrival-opacity); translate: 0 var(--arrival-rise); }
     to   { opacity: 1; translate: 0 0; }
   }
 }

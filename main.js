@@ -478,22 +478,25 @@ if (projects.length) {
   renderProjects('Все');
 }
 
-// Play the entrance at the bottom edge. Jumps directly to a section stay immediate.
+// Let some content enter the viewport before starting its one-second entrance.
 const arrivalObserver = new IntersectionObserver(entries => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
     const { target, rootBounds, boundingClientRect } = entry;
     arrivalObserver.unobserve(target);
+    target.classList.remove('arrival-pending');
     if (!rootBounds || state.paused || target.matches(':target, :focus-within')) continue;
-    const entryBand = Math.min(140, rootBounds.height * .2);
-    if (boundingClientRect.top >= rootBounds.bottom - entryBand) {
+    if (boundingClientRect.top >= rootBounds.top + rootBounds.height * .35) {
       target.classList.add('scroll-arrival');
     }
   }
-});
+}, { rootMargin: '0px 0px -64px' });
 const viewportHeight = document.documentElement.clientHeight;
 for (const block of $$('.expertise-intro, .service-item, .collaboration-intro, .questions-list article, #contact-title')) {
-  if (block.getBoundingClientRect().top >= viewportHeight) arrivalObserver.observe(block);
+  if (block.getBoundingClientRect().top >= viewportHeight) {
+    block.classList.add('arrival-pending');
+    arrivalObserver.observe(block);
+  }
 }
 
 const serviceObserver = new IntersectionObserver(entries => {
