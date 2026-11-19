@@ -2,29 +2,47 @@ import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { projects } from './projects.mjs';
-import { esc, renderEdition } from './editions/render.mjs';
 
 const source = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.dirname(source);
 
+function esc(value) {
+  return String(value).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+
 function catalogCard(project, index) {
-  return `<li class="work" id="work-${project.id}"><a href="${project.id}/index.html">
-    <img src="./media/${project.id}.webp" alt="" width="1060" height="500" loading="${index < 4 ? 'eager' : 'lazy'}" decoding="async">
-    <span class="work-name">${esc(project.name)}</span></a></li>`;
+  const href = project.newTab ? project.url : project.id + '/';
+  const tab = project.newTab ? ' target="_blank" rel="noopener" aria-label="' + esc(project.name) + ' (в новой вкладке)"' : '';
+  return `<li class="work" id="work-${project.id}"><a href="${esc(href)}"${tab}>
+    <div class="preview"><img src="./media/${project.id}.webp" alt="" width="1060" height="596" loading="${index < 4 ? 'eager' : 'lazy'}" decoding="async"></div>
+    <span class="caption"><span>${esc(project.name)}</span><span class="arrow" aria-hidden="true">↗</span></span></a></li>`;
 }
 
 function gallery(telegram) {
   const contact = telegram ? `<a href="${esc(telegram.url)}" target="_blank" rel="noopener">Написать в Telegram ↗</a>` : '';
   return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Сайты — работы Алексея</title><meta name="description" content="Подборка сайтов Алексея. Откройте проект, чтобы посмотреть его демоверсию."><meta name="theme-color" content="#18181a">
+  <title>Сайты — работы Алексея</title><meta name="description" content="Избранные сайты и дизайн-концепты Алексея. Откройте проект, чтобы посмотреть его в работе."><meta name="theme-color" content="#18181a">
   <link rel="canonical" href="https://alexden09-boop.github.io/alexey-portfolio/sites/"><link rel="icon" href="../favicon.svg">
-  <link rel="stylesheet" href="../fonts.css"><link rel="stylesheet" href="./gallery.css?v=grid-four"></head>
+  <link rel="stylesheet" href="../fonts.css"><link rel="stylesheet" href="./gallery.css?v=originals"></head>
   <body><a class="skip" href="#main">К проектам</a><div class="wrap">
     <header class="mast"><a href="../#hybrid">← На главную</a>${contact}</header>
-    <main id="main"><div class="intro"><h1>Сайты<span aria-label="${projects.length} работ">${projects.length}</span></h1>
-      <p>С разрешения заказчиков показываю сокращённые демоверсии. Часть графики и анимации изменена. Полные сайты и внутренние материалы клиентов остаются приватными.</p>
+    <main id="main"><div class="intro"><h1>Сайты<sup aria-label="${projects.length} работ">${projects.length}</sup></h1>
+      <div class="note"><p>Клиентские сайты публикую с&nbsp;разрешения заказчиков. В&nbsp;подборке есть и&nbsp;мои собственные проекты.</p>
+      <p>Остальные работы и внутренние материалы клиентов остаются закрытыми.</p></div>
     </div><ul class="gallery" aria-label="Проекты">${projects.map(catalogCard).join('\n')}</ul></main>
   </div></body></html>`;
+}
+
+function viewer(project) {
+  const name = esc(project.name);
+  const href = esc(project.url || './edition/');
+  const content = project.newTab
+    ? `<main class="external"><h1>${name}</h1><a href="${href}" target="_blank" rel="noopener">Открыть сайт ↗</a></main>`
+    : `<iframe title="${name}" src="${href}" allowfullscreen></iframe>`;
+  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${name} — Сайты Алексея</title><link rel="icon" href="../../favicon.svg"><link rel="stylesheet" href="../../fonts.css"><link rel="stylesheet" href="../viewer.css"></head>
+  <body><header><a class="back" href="../index.html#work-${project.id}"><span aria-hidden="true">←</span> Назад к сайтам</a>
+  <span class="title">${name}</span><a class="open" href="${href}" target="_blank" rel="noopener">Открыть отдельно ↗</a></header>${content}</body></html>`;
 }
 
 async function prune(dir, allowed) {
@@ -40,22 +58,17 @@ export async function buildCatalog(output, telegram) {
   if (![path.join(repo, 'docs'), path.join(repo, 'dist')].includes(path.resolve(output))) throw Error('Unexpected build directory');
   const dir = path.resolve(output, 'sites');
   const media = path.join(dir, 'media');
-  await mkdir(media, {recursive: true});
-  await cp(path.join(source, 'gallery.css'), path.join(dir, 'gallery.css'));
-  for (const item of ['art','reader.css','reader.js']) await cp(path.join(source,'editions',item), path.join(dir,item), {recursive: true});
-
-  const previewFiles = ['.webp', '-next.webp', '-mobile.webp'];
-  for (const p of projects) {
-    const room = path.join(dir,p.id);
-    await mkdir(room, {recursive: true});
-    if (p.framed) await cp(path.join(source,'demo',p.id), path.join(room,'edition'), {recursive: true});
-    await writeFile(path.join(room,'index.html'), renderEdition(p));
-    for (const suffix of previewFiles) {
-      const file = p.id + suffix;
-      await cp(path.join(source,'media',file), path.join(media,file));
-    }
+  await mkdir(media, { recursive: true });
+  for (const file of ['gallery.css', 'viewer.css']) await cp(path.join(source, file), path.join(dir, file));
+  for (const project of projects) {
+    const room = path.join(dir, project.id);
+    await mkdir(room, { recursive: true });
+    if (!project.url) await cp(path.join(source, 'demo', project.id), path.join(room, 'edition'), { recursive: true });
+    await writeFile(path.join(room, 'index.html'), viewer(project));
+    const file = project.id + '.webp';
+    await cp(path.join(source, 'media', file), path.join(media, file));
   }
-  await writeFile(path.join(dir,'index.html'),gallery(telegram));
-  await prune(media, new Set(projects.flatMap(p => previewFiles.map(suffix => p.id + suffix))));
-  await prune(dir,new Set(['index.html','media','art','gallery.css','reader.css','reader.js',...projects.map(p=>p.id)]));
+  await writeFile(path.join(dir, 'index.html'), gallery(telegram));
+  await prune(media, new Set(projects.map(p => p.id + '.webp')));
+  await prune(dir, new Set(['index.html', 'media', 'gallery.css', 'viewer.css', ...projects.map(p => p.id)]));
 }

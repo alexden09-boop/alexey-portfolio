@@ -10,3 +10,9 @@
 *.webp binary
 *.glb binary
 *.hdr binary
+*.ttf binary
+*.mp4 binary
+*.pdf binary
+*.gif binary
+*.jpeg binary
+*.ico binary
