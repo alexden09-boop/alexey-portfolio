@@ -37,9 +37,10 @@ try {
   await page.waitForURL(sitesURL.href);
   const works = page.locator('.work');
   const addresses = await works.locator('a').evaluateAll(links => links.map(a => a.href));
-  const expected = ['homesart','duckcomics','meganrg','meta-lingva','capsule','soyuz','atelier','hikikomori','energy','beta-trading','author','aero','roman'];
+  const expected = ['homesart','duckcomics','meganrg','meta-lingva','capsule','soyuz','atelier','hikikomori','energy','beta-trading','author','roman'];
   assert.deepEqual(await works.evaluateAll(items => items.map(item => item.id.replace('work-', ''))), expected);
   assert.equal(new Set(addresses).size, expected.length);
+  assert.equal((await page.request.get(new URL('aero/', sitesURL).href)).status(), 404);
   assert.equal(await page.locator('#work-hikikomori a').getAttribute('target'), '_blank');
   const columns = await page.locator('.gallery').evaluate(grid =>
     getComputedStyle(grid).gridTemplateColumns.split(' ').length);

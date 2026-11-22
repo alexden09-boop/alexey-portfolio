@@ -10,6 +10,5 @@ export const projects = [
   { id: 'energy', name: 'ENERGY', url: 'https://energy-vpn.alexden09.chatgpt.site/' },
   { id: 'beta-trading', name: 'Beta Trading' },
   { id: 'author', name: 'Цао Шэнь Мин' },
-  { id: 'aero', name: 'AERO' },
   { id: 'roman', name: 'Портфолио Романа' },
 ];
