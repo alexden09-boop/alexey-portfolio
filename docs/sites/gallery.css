@@ -11,9 +11,17 @@ a:focus-visible { outline: 2px solid #e8c4a8; outline-offset: 5px; }
 .intro { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 24px; padding: clamp(35px, 4.4vw, 72px) 0 clamp(30px, 3.7vw, 62px); }
 h1 { font: 510 clamp(52px, 5.5vw, 90px)/1 'Unbounded Variable', Arial, sans-serif; letter-spacing: -.072em; }
 h1 sup { display: inline-block; margin: .25em 0 0 .55em; vertical-align: top; color: #dfb99f; font: 570 .26em/1.3 'Manrope Variable', Arial, sans-serif; letter-spacing: -.02em; }
-.note { max-width: 39em; }
-.note p:first-child { font-size: clamp(20px, 1.77vw, 29px); line-height: 1.34; font-weight: 510; letter-spacing: -.032em; text-wrap: pretty; }
-.note p + p { margin-top: .75em; color: #b8b2ae; font-size: clamp(15px, 1.1vw, 18px); line-height: 1.5; text-wrap: pretty; }
+.note { position: relative; max-width: 42em; padding: 35px clamp(24px, 2.9vw, 43px) 32px; }
+.note p:first-child { font-size: clamp(22px, 1.95vw, 31px); line-height: 1.3; font-weight: 550; letter-spacing: -.032em; text-wrap: pretty; }
+.note p + p { margin-top: .65em; color: #c6c0bc; font-size: clamp(16px, 1.2vw, 19px); line-height: 1.5; text-wrap: pretty; }
+.note-outline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.note-outline path {
+  fill: none;
+  stroke: #ec6158;
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+}
 .gallery { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(26px, 2.7vw, 46px) clamp(12px, 1.45vw, 24px); }
 .work { min-width: 0; scroll-margin-block: 22px; }
 .work a { display: block; }
@@ -27,8 +35,13 @@ h1 sup { display: inline-block; margin: .25em 0 0 .55em; vertical-align: top; co
   .work a:hover .arrow, .work a:focus-visible .arrow { color: #f2cfb3; transform: translate(1px,-2px); }
 }
 @media (prefers-reduced-motion: no-preference) {
+  .note-outline path { animation: draw-note-outline 2.5s linear .18s both; }
   .preview img, .arrow { transition: transform .45s cubic-bezier(.22,.65,.24,1); }
   @media (hover: hover) { .work a:hover img { transform: scale(1.025); } }
+}
+@keyframes draw-note-outline {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
 }
 @media (max-width: 700px) {
   .mast { min-height: 49px; }
