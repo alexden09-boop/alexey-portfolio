@@ -2,7 +2,6 @@ import { telegramContact } from './telegram.js';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { createSculpture } from './scene.js';
-import { createProduct } from './product.js';
 import { connectFolios } from './folio-navigation.js';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -14,58 +13,10 @@ const storage = { get(key) { try { return localStorage.getItem(key); } catch { r
 const state = { concept: 'hybrid', paused: reduced.matches, time: 0, scroll: 0, x: 0, y: 0, tx: 0, ty: 0, dragging: false, dragRotation: 0, dragStart: 0, frames: 0, heroVisible: true };
 state.heroFocus = null;
 const choreography = { arrival: 1, beat: 0 };
-const showcaseProgress = { value: 0 };
-let product = null;
-let studyVisible = false;
-let storyTimeline = null;
-let storyStarted = false;
 let counterTimeline = null;
 let counterVisible = false;
 let toolkitTimelines = [];
 const toolkitVisible = new Set();
-let storyMobile = innerWidth <= 760;
-let storyPhase = -1;
-const codeState = { count: 0 };
-const storyCode = [
-  ["const ", "speaker", " = new Mesh("],
-  ["  body.geometry,"],
-  ["  brushedAluminium"],
-  [");"],
-  [""],
-  ["scene", ".add", "(speaker);"],
-  ["camera", ".lookAt", "(speaker.position);"],
-  ["renderer", ".render", "(scene, camera);"],
-];
-const codeLength = storyCode.flat().join('').length + storyCode.length - 1;
-const assemblyStart = 9.86;
-const assemblySpeed = 2.2;
-const assemblyDuration = 6.8;
-// The volume dial is the last part to seat, at 77% of the model animation.
-const pageReveal = assemblyStart + .77 * assemblyDuration / assemblySpeed;
-const chapters = [
-  { at: 0, name: 'Переписка', caption: 'Для запуска колонки нужна страница. В чате уточняем задачу и получаем чертёж.' },
-  { at: 4.2, name: 'План страницы', caption: 'На первом экране покажем саму колонку. Ниже разместим материалы корпуса и характеристики.' },
-  { at: 7.15, name: 'Пишу код', caption: 'Задаю материал корпуса, ставлю камеру и добавляю модель в сцену.' },
-  { at: 10.1, name: 'Сборка', caption: 'Устанавливаю динамики, закрываю их решёткой и ставлю на место регулятор громкости.' },
-  { at: pageReveal + 1.42, name: 'Готовая страница', caption: 'Готовый сайт SONA. Та же колонка, с которой началась переписка, теперь на первом экране.' },
-];
-const codeTokens = [];
-let previousCount = -1;
-function createCodeLines() {
-  const code = $('.code-content');
-  let offset = 0;
-  storyCode.forEach((line, row) => {
-    if (row) { code.append(document.createTextNode('')); codeTokens.push({ node: code.lastChild, value: '\n', offset: offset++ }); }
-    line.forEach((value, column) => {
-      const token = document.createElement('span');
-      token.className = row === 0 && column === 0 ? 'syntax-keyword' : (column === 1 ? 'syntax-method' : 'syntax-base');
-      code.append(token);
-      codeTokens.push({ node: token, value, offset });
-      offset += value.length;
-    });
-  });
-}
-createCodeLines();
 let sculpture = null;
 let motionContext = null;
 let intro = null;
@@ -76,32 +27,21 @@ function canAnimate() { return !state.paused && !document.hidden && !menuOpen &&
 function syncMotion() {
   const paused = !canAnimate();
   if (intro && intro.progress() < 1) intro.paused(paused);
-  storyTimeline?.paused(paused || !studyVisible);
   counterTimeline?.paused(paused || !counterVisible);
   toolkitTimelines.forEach((timeline, index) => timeline.paused(paused || !toolkitVisible.has(index)));
 }
 
 function setupMotion(entrance = false, restart = false) {
-  const storyTime = storyTimeline?.time() || 0;
   const reelTimes = toolkitTimelines.map(timeline => timeline.time());
   const counterTime = restart ? 0 : counterTimeline?.time() || 0;
   motionContext?.revert();
   motionContext = null;
   intro = null;
-  storyTimeline = null;
   counterTimeline = null;
   toolkitTimelines = [];
   choreography.arrival = 1;
   choreography.beat = 0;
-  showcaseProgress.value = 0;
-  product?.frame(0, true);
   motionContext = gsap.context(() => {
-    storyMobile = innerWidth <= 760;
-    if (storyStarted) {
-      buildProductionStory();
-      storyTimeline.time(state.paused ? storyTimeline.duration() : storyTime).pause();
-      product?.frame(showcaseProgress.value, true);
-    }
     if (state.paused) return;
     if (entrance) {
       intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
@@ -149,149 +89,6 @@ for (const link of $$('[data-document]')) {
   link.addEventListener('blur', blur);
 }
 connectFolios($$('[data-document]'), (key, host) => sculpture?.openFolio(key, host), reduced);
-function updateStory() {
-  const time = storyTimeline?.time() || 0;
-  const active = chapters.findLastIndex(chapter => time >= chapter.at);
-  if (storyPhase !== active) {
-    storyPhase = active;
-    $('.showcase-stage').dataset.phase = String(active);
-    $('#story-heading').textContent = chapters[active].name;
-    $('#story-caption').textContent = chapters[active].caption;
-  }
-  const count = Math.floor(codeState.count);
-  if (count !== previousCount) {
-    for (const { node, value, offset } of codeTokens) {
-      const part = value.slice(0, Math.max(0, count - offset));
-      if (node.textContent !== part) node.textContent = part;
-    }
-    previousCount = count;
-  }
-  if (state.paused) product?.frame(showcaseProgress.value, true);
-}
-function trackDrawingFlight() {
-  const stage = $('.film-scenes');
-  const flight = $('.drawing-flight');
-  const source = $('.drawing-source');
-  const target = $('.drawing-target');
-  function center(node) {
-    let x = node.offsetWidth / 2, y = node.offsetHeight / 2;
-    for (let parent = node; parent && parent !== stage; parent = parent.offsetParent) {
-      x += parent.offsetLeft;
-      y += parent.offsetTop;
-    }
-    return { x, y };
-  }
-  function measure() {
-    const from = center(source), to = center(target);
-    flight.style.width = target.offsetWidth + 'px';
-    flight.style.height = target.offsetHeight + 'px';
-    flight.style.setProperty('--from-x', from.x + 'px');
-    flight.style.setProperty('--from-y', from.y + 'px');
-    flight.style.setProperty('--dx', (to.x - from.x) + 'px');
-    flight.style.setProperty('--dy', (to.y - from.y) + 'px');
-    flight.style.setProperty('--start-w', source.offsetWidth / Math.max(1, target.offsetWidth));
-    flight.style.setProperty('--start-h', source.offsetHeight / Math.max(1, target.offsetHeight));
-  }
-  measure();
-  const observer = new ResizeObserver(measure);
-  [stage, source, target].forEach(node => observer.observe(node));
-}
-
-function buildProductionStory() {
-  const [chat, plan, editor, assembly] = $$('.film-scene');
-  const tl = gsap.timeline({ paused: true, defaults: { ease: 'sine.inOut' }, onUpdate: updateStory });
-  storyTimeline = tl;
-  storyPhase = -1;
-  gsap.set([plan, editor, assembly], { autoAlpha: 0, scale: .98, y: 10 });
-  gsap.set(chat, { autoAlpha: 1, scale: 1, y: 0 });
-  gsap.set('.chat-bubble, .chat-typing, .system-preview, .assembly-drawing, .editor-preview, .drawing-target', { autoAlpha: 0 });
-  gsap.set('.drawing-flight', { autoAlpha: 0, '--travel': 0 });
-  gsap.set('.plan-draw', { clipPath: 'inset(0 100% 0 0)' });
-  gsap.set('.dimension-rule', { scaleX: 0 });
-  gsap.set('.model-panel', { xPercent: -51, scale: 1.72 });
-  gsap.set('.film-site', { scale: 1.02 });
-  codeState.count = 0;
-  showcaseProgress.value = 0;
-  const [incoming, reply, attachment] = $$('.chat-bubble');
-  function message(element, at) {
-    tl.fromTo(element, { autoAlpha: 0, y: 9, scale: .975 }, { autoAlpha: 1, y: 0, scale: 1, duration: .46, ease: 'power2.out', immediateRender: false }, at);
-  }
-  function dissolve(outgoing, incoming, at) {
-    tl.to(outgoing, { autoAlpha: 0, scale: 1.018, y: -8, duration: .72 }, at - .45)
-      .to(incoming, { autoAlpha: 1, scale: 1, y: 0, duration: .78 }, at - .36);
-  }
-  for (const chapter of chapters.slice(1)) {
-    tl.to('.film-caption', { opacity: 0, y: -4, duration: .25 }, chapter.at - .25)
-      .fromTo('.film-caption', { opacity: 0, y: 5 }, { opacity: 1, y: 0, duration: .37, immediateRender: false }, chapter.at);
-  }
-
-  tl.fromTo('.chat-window', { scale: .94, y: 7 }, { scale: 1, y: 0, duration: 2, ease: 'power2.out' }, 0)
-    .fromTo('.film-editor', { rotateZ: -.6, scale: .985 }, { rotateZ: 0, scale: 1, duration: 1.8, immediateRender: false }, 7);
-  message(incoming, .15);
-  tl.to('.chat-typing', { autoAlpha: 1, duration: .2 }, .76)
-    .fromTo('.chat-typing i', { y: 0 }, { y: -3, stagger: .08, duration: .21, repeat: 1, yoyo: true }, .91)
-    .to('.chat-typing', { autoAlpha: 0, duration: .2 }, 1.53);
-  message(reply, 1.65);
-  message(attachment, 2.66);
-  tl.to('.drawing-flight', { autoAlpha: 1, duration: .18 }, 3.46)
-    .to('.drawing-source', { opacity: 0, duration: .18 }, 3.47)
-    .to('.drawing-flight', { '--travel': 1, duration: 1.20, ease: 'power2.inOut' }, 3.60);
-  dissolve(chat, plan, chapters[1].at);
-  tl.to('.drawing-target', { autoAlpha: 1, duration: .25 }, 4.76)
-    .to('.drawing-flight', { autoAlpha: 0, duration: .32 }, 4.8)
-    .to('.plan-draw', { clipPath: 'inset(0 0% 0 0)', duration: .68, stagger: .22 }, 4.52)
-    .to('.dimension-rule', { scaleX: 1, duration: .64 }, 5.24)
-    .fromTo('.draft-text i', { scaleX: .35, transformOrigin: 'left' }, { scaleX: 1, duration: .55, stagger: .12 }, 5.38);
-
-  dissolve(plan, editor, chapters[2].at);
-  tl.to(codeState, { count: codeLength * .49, duration: .91, ease: 'none' }, 7.37)
-    .to(codeState, { count: codeLength, duration: 1.15, ease: 'none' }, 8.44)
-    .to('.editor-preview', { autoAlpha: 1, duration: .65 }, 8.27)
-    .fromTo('.editor-preview .speaker-print', { rotateY: -32 }, { rotateY: 10, duration: 1.18 }, 8.58);
-
-  dissolve(editor, assembly, chapters[3].at);
-  gsap.set('.fallback-drivers', { xPercent: -17 });
-  gsap.set('.product-fallback i', { xPercent: -72, rotateY: -21, opacity: .52 });
-  gsap.set('.fallback-dial', { yPercent: -240 });
-
-  const assemblyShot = gsap.timeline({ defaults: { ease: 'sine.inOut' } });
-  assemblyShot.fromTo(showcaseProgress, { value: 0 }, { value: 1, duration: assemblyDuration, ease: 'none', immediateRender: false }, 0)
-    .to('.assembly-drawing', { autoAlpha: 1, duration: .68 }, .56)
-    .fromTo('.assembly-drawing span', { yPercent: 9, opacity: 0 }, { yPercent: 0, opacity: 1, stagger: .3, duration: .64 }, .7)
-    .to('.assembly-drawing', { autoAlpha: 0, duration: .62 }, 4.42)
-    .to('.fallback-drivers', { xPercent: 0, duration: 1.3 }, 1.44)
-    .to('.product-fallback i', { xPercent: 0, rotateY: 0, opacity: 1, duration: 1.7 }, 2.94)
-    .to('.fallback-dial', { yPercent: 0, duration: .95 }, 4.14);
-  tl.add(assemblyShot.timeScale(assemblySpeed), assemblyStart)
-    .to('.model-panel', { xPercent: 0, scale: 1, duration: 1.95, ease: 'power2.inOut' }, pageReveal)
-    .to('.system-preview', { autoAlpha: 1, duration: 1.25 }, pageReveal + .45)
-    .to('.film-site', { scale: .96, duration: 1.64 }, pageReveal + .44)
-    .fromTo('.preview-header,.preview-copy,.preview-details > div', { y: 7, opacity: 0 }, { y: 0, opacity: 1, duration: .64, stagger: .15, immediateRender: false }, pageReveal + .69)
-    .to({}, { duration: .8 }, pageReveal + 2.57);
-  updateStory();
-}
-$('.story-start').addEventListener('click', () => {
-  if (storyStarted) return;
-  storyStarted = true;
-  $('#story-presentation').hidden = false;
-  $('.showcase-stage').dataset.story = 'started';
-  trackDrawingFlight();
-  $('.story-start').hidden = true;
-  try {
-    product = createProduct();
-  } catch {
-    const scene = $('#study-scene');
-    scene.classList.remove('ready');
-    scene.dataset.renderer = 'fallback';
-    $('canvas', scene)?.remove();
-  }
-  motionContext.add(() => buildProductionStory());
-  if (state.paused) storyTimeline.progress(1).pause();
-  $('#studies-title').focus({ preventScroll: true });
-  syncMotion();
-});
-$('.story-replay').addEventListener('click', () => { storyTimeline?.time(0).pause(); syncMotion(); });
-
 function buildToolkitMotion(reelTimes) {
   toolkitTimelines = $$('.toolkit-group').map((group, index) => {
     const reel = $('.toolkit-reel', group);
@@ -317,15 +114,10 @@ desktop.addEventListener('change', () => {
   if (document.body.classList.contains('ice-open')) return;
   closeMenu(); setupMotion(false); ScrollTrigger.refresh();
 });
-window.addEventListener('resize', () => {
-  if (!document.body.classList.contains('ice-open') && storyMobile !== (innerWidth <= 760)) { setupMotion(false); ScrollTrigger.refresh(); }
-});
 document.addEventListener('visibilitychange', syncMotion);
 document.addEventListener('portfolio-view-change', () => {
   if (!document.body.classList.contains('ice-open')) {
-    if (storyMobile !== (innerWidth <= 760)) setupMotion(false);
     sculpture?.resize();
-    product?.resize();
     ScrollTrigger.refresh();
   }
   syncMotion();
@@ -530,8 +322,6 @@ createSculpture(state, choreography).then(model => { sculpture = model; }).catch
   $('#scene').dataset.renderer = 'fallback';
   $('#scene canvas')?.remove();
 });
-const studyObserver = new IntersectionObserver(([entry]) => { studyVisible = entry.isIntersecting && entry.intersectionRatio >= .25; if (studyVisible) product?.frame(showcaseProgress.value, true); syncMotion(); }, { threshold: [0, .25] });
-studyObserver.observe($('.showcase-stage'));
 const counterObserver = new IntersectionObserver(([entry]) => { counterVisible = entry.isIntersecting && entry.intersectionRatio >= .2; syncMotion(); }, { threshold: [0, .2] });
 counterObserver.observe($('#experience'));
 const toolkitGroups = $$('.toolkit-group');
@@ -548,7 +338,6 @@ const heroObserver = new IntersectionObserver(([entry]) => { state.heroVisible =
 heroObserver.observe($('.hybrid-hero'));
 gsap.ticker.add((time, delta) => {
   if (!canAnimate()) return;
-  if (studyVisible) product?.frame(showcaseProgress.value);
   if (state.heroVisible) {
     state.time += Math.min(delta / 1000, .15);
     sculpture?.frame(Math.min(delta / 1000, .05));
@@ -557,4 +346,4 @@ gsap.ticker.add((time, delta) => {
 document.body.classList.toggle('motion-paused', state.paused);
 setupMotion(true);
 document.fonts.ready.then(() => { sculpture?.resize(); ScrollTrigger.refresh(); document.documentElement.dataset.ready = 'true'; });
-Object.defineProperty(window, 'portfolioStatus', { value: () => ({ paused: state.paused, frames: state.frames, heroBounds: sculpture?.bounds(), documents: sculpture?.documentStatus() || [], renderer: $('#scene').dataset.renderer, heroVisible: state.heroVisible, projects: projects.length, scrollScenes: ScrollTrigger.getAll().length, studyRenderer: $('#study-scene').dataset.renderer, studyProgress: showcaseProgress.value, studyFrames: product?.frames || 0, storyTime: storyTimeline?.time() || 0, storyDuration: storyTimeline?.duration() || 0, storyPhase, storyPlaying: storyTimeline?.isActive() || false, counterTime: counterTimeline?.time() || 0, counterPlaying: counterTimeline?.isActive() || false, toolkitTimes: toolkitTimelines.map(timeline => timeline.totalTime()), toolkitPlaying: toolkitTimelines.map(timeline => timeline.isActive()) }) });
+Object.defineProperty(window, 'portfolioStatus', { value: () => ({ paused: state.paused, frames: state.frames, heroBounds: sculpture?.bounds(), documents: sculpture?.documentStatus() || [], renderer: $('#scene').dataset.renderer, heroVisible: state.heroVisible, projects: projects.length, scrollScenes: ScrollTrigger.getAll().length, counterTime: counterTimeline?.time() || 0, counterPlaying: counterTimeline?.isActive() || false, toolkitTimes: toolkitTimelines.map(timeline => timeline.totalTime()), toolkitPlaying: toolkitTimelines.map(timeline => timeline.isActive()) }) });

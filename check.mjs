@@ -62,15 +62,27 @@ try {
     await link.click();
     assert.equal(new URL(page.url()).hash, '#service-' + id);
   }
-  await page.locator('.story-start').click();
-  await page.waitForFunction(() => window.portfolioStatus().storyPhase === 4);
+  assert.equal(await page.locator('#studies').count(), 0);
+  assert.deepEqual(await page.locator('main > section:visible').evaluateAll(sections => {
+    const experience = sections.findIndex(section => section.id === 'experience');
+    return sections.slice(experience, experience + 2).map(section => section.id);
+  }), ['experience', 'about']);
   const readingRoomURL = page.url();
   await page.locator('[data-document="3d"]').click();
   await page.waitForURL(url => url.pathname === sceneURL.pathname);
   await page.locator('.ice-opened.ice-ready').waitFor({timeout: 60000});
   const room = page.frame({name:'portfolio-ice'});
   const backSize = await room.locator('.scene-back').boundingBox();
-  assert.ok(backSize.width >= 150 && backSize.height >= 88);
+  assert.ok(backSize.width >= 125 && backSize.width <= 155);
+  assert.equal(backSize.height, 77);
+  const backLink = room.getByRole('link', {name: 'Назад на визитку'});
+  const backLook = () => backLink.evaluate(link => {
+    const style = getComputedStyle(link);
+    return [style.color, style.textDecorationLine, getComputedStyle(link.querySelector('span')).transform];
+  });
+  const idleLook = await backLook();
+  await backLink.hover();
+  assert.deepEqual(await backLook(), idleLook);
   await room.getByText('Прокрутите колёсико мыши вниз').waitFor();
   await room.waitForFunction(() => window.sceneDraws > 80, null, {timeout: 60000});
   assert.ok(requests.some(url => url.includes(sceneURL.pathname.replace('index.html', 'assets/geometries/')) && url.endsWith('.drc')));
@@ -78,7 +90,7 @@ try {
   assert.ok(!requests.some(url => /\/audio\/|\.ogg|audioworker/i.test(url)));
   assert.deepEqual(requests.filter(url => url.startsWith(base.origin + '/') && !url.startsWith(base.href)), []);
   await page.setViewportSize({width: 390, height: 844});
-  await room.getByRole('link', {name: 'Назад на визитку'}).click();
+  await backLink.click();
   await page.waitForURL(readingRoomURL);
   await page.locator('.menu-toggle').click();
   await page.locator('#mobile-menu a[href="#contact"]').click();

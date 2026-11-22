@@ -27,26 +27,18 @@
   display: inline-flex;
   align-items: center;
   gap: .55em;
-  min-height: 88px;
-  padding: 0 26px;
+  min-height: 75px;
+  padding: 0 22px;
   border: 1px solid rgb(231 247 255 / .72);
   background: rgb(19 34 48 / .86);
   box-shadow: 0 3px 14px rgb(10 24 36 / .22);
   color: #fff;
-  font: 500 30px/1 IBMPlexMono-Medium, monospace;
+  font: 500 25.5px/1 IBMPlexMono-Medium, monospace;
   text-decoration: none;
   text-shadow: 0 1px 2px #18212b, 0 0 6px #18212b;
   touch-action: manipulation;
 }
-.scene-back span { transition: transform 180ms ease-out; }
 .scene-back:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
-@media (hover: hover) {
-  .scene-back:hover { text-decoration: underline; text-underline-offset: 4px; }
-  .scene-back:hover span { transform: translateX(-3px); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .scene-back span { transition: none; }
-}
 .scene-description {
   position: absolute;
   width: 1px;
